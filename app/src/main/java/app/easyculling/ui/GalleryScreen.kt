@@ -372,16 +372,8 @@ fun GalleryScreen(
     }
 }
 
-private fun LazyGridState.indexAt(pos: Offset): Int? =
-    layoutInfo.visibleItemsInfo.firstOrNull { item ->
-        pos.x >= item.offset.x && pos.x < item.offset.x + item.size.width &&
-            pos.y >= item.offset.y && pos.y < item.offset.y + item.size.height
-    }?.index
-
 @Composable
 private fun PhotoGrid(list: List<Photo>, grid: LazyGridState, cols: Int, ui: GalleryUi, onOpen: (Photo) -> Unit) {
-    val haptic = LocalHapticFeedback.current
-    val scope = rememberCoroutineScope()
     val currentList by androidx.compose.runtime.rememberUpdatedState(list)
     LazyVerticalGrid(
         columns = GridCells.Fixed(cols),
@@ -390,35 +382,13 @@ private fun PhotoGrid(list: List<Photo>, grid: LazyGridState, cols: Int, ui: Gal
         verticalArrangement = Arrangement.spacedBy(2.dp),
         modifier = Modifier
             .fillMaxSize()
-            .pointerInput(grid) {
-                // Long-press, then drag across thumbnails to select a range.
-                var anchor: Int? = null
-                var base: Set<Long> = emptySet()
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { off ->
-                        val idx = grid.indexAt(off) ?: return@detectDragGesturesAfterLongPress
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        ui.selecting = true
-                        base = ui.selected
-                        anchor = idx
-                        ui.selected = base + currentList[idx].id
-                    },
-                    onDrag = { change, _ ->
-                        val a = anchor ?: return@detectDragGesturesAfterLongPress
-                        change.consume()
-                        val h = size.height
-                        val y = change.position.y
-                        if (y > h - 120) scope.launch { grid.scrollBy(40f) }
-                        if (y < 120) scope.launch { grid.scrollBy(-40f) }
-                        val idx = grid.indexAt(change.position) ?: return@detectDragGesturesAfterLongPress
-                        val range = if (a <= idx) a..idx else idx..a
-                        val l = currentList
-                        ui.selected = base + range.filter { it in l.indices }.map { l[it].id }
-                    },
-                    onDragEnd = { anchor = null },
-                    onDragCancel = { anchor = null },
-                )
-            },
+            .dragSelect(
+                grid = grid,
+                keyAt = { i -> currentList.getOrNull(i)?.id },
+                selection = { ui.selected },
+                onSelectionChange = { ui.selected = it },
+                onStart = { ui.selecting = true },
+            ),
     ) {
         itemsIndexed(list, key = { _, p -> p.id }) { _, p ->
             val sel = p.id in ui.selected

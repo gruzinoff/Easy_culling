@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
@@ -43,6 +44,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -89,7 +91,15 @@ fun PickerScreen(sid: String, onDone: () -> Unit) {
                     }
                 },
                 title = {
-                    Text(open?.name ?: "Add photos", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Column {
+                        Text(open?.name ?: "Add photos", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (open != null) {
+                            Text(
+                                "${selected.size} selected · hold & drag to select a range",
+                                style = MaterialTheme.typography.bodySmall, color = Color.Gray, maxLines = 1,
+                            )
+                        }
+                    }
                 },
                 actions = {
                     open?.let { b ->
@@ -133,6 +143,7 @@ fun PickerScreen(sid: String, onDone: () -> Unit) {
                 bucket = open!!, already = already, selected = selected,
                 modifier = Modifier.padding(pad),
                 onToggle = { p -> selected = if (p in selected) selected - p else selected + p },
+                onSetSelection = { selected = it },
             )
             else -> LazyColumn(Modifier.fillMaxSize().padding(pad)) {
                 items(list, key = { it.key }) { b ->
@@ -187,11 +198,22 @@ private fun BucketGrid(
     selected: Set<String>,
     modifier: Modifier,
     onToggle: (String) -> Unit,
+    onSetSelection: (Set<String>) -> Unit,
 ) {
     val landscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
+    val grid = remember(bucket.key) { LazyGridState() }
+    val currentSelected by rememberUpdatedState(selected)
     LazyVerticalGrid(
         columns = GridCells.Fixed(if (landscape) 6 else 3),
-        modifier = modifier.fillMaxSize(),
+        state = grid,
+        modifier = modifier
+            .fillMaxSize()
+            .dragSelect(
+                grid = grid,
+                keyAt = { i -> bucket.items.getOrNull(i)?.path?.takeIf { it !in already } },
+                selection = { currentSelected },
+                onSelectionChange = onSetSelection,
+            ),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
