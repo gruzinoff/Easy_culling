@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- photo frame -->
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="3"
+        android:pathData="M34,36 h40 a4,4 0 0 1 4,4 v28 a4,4 0 0 1 -4,4 h-40 a4,4 0 0 1 -4,-4 v-28 a4,4 0 0 1 4,-4 z" />
+    <!-- star -->
+    <path android:fillColor="#FFFFD54F"
+        android:pathData="M54,42 l3.5,7.6 8.3,0.9 -6.2,5.6 1.8,8.2 -7.4,-4.3 -7.4,4.3 1.8,-8.2 -6.2,-5.6 8.3,-0.9 z" />
+</vector>
