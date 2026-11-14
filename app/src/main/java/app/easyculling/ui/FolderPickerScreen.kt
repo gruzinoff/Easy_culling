@@ -88,7 +88,7 @@ fun FolderPickerScreen(sid: String, ids: List<Long>, onBack: () -> Unit, onMoved
                         Text("Move ${ids.size} photos", fontSize = 18.sp)
                         Text(
                             "/" + dir.path.removePrefix(root.path).trimStart('/'),
-                            fontSize = 12.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.StartEllipsis,
+                            fontSize = 12.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         )
                     }
                 },

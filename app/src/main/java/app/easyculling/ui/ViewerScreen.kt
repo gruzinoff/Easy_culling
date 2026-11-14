@@ -329,7 +329,7 @@ private data class InfoRow(val label: String, val value: String)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun InfoSheet(p: Photo, onDismiss: () -> Unit) {
-    val rows by produceState(initialValue = emptyList(), p.path) {
+    val rows by produceState(initialValue = emptyList<InfoRow>(), p.path) {
         value = withContext(Dispatchers.IO) { readInfo(p) }
     }
     ModalBottomSheet(onDismissRequest = onDismiss) {

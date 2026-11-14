@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.CheckBox
@@ -38,7 +39,6 @@ import androidx.compose.material.icons.outlined.Compare
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.DeleteSweep
-import androidx.compose.material.icons.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.SelectAll
@@ -262,7 +262,7 @@ fun GalleryScreen(
                             })
                             BarAction(Icons.Outlined.StarOutline, "Rate", onClick = { showBulkRate = true }, enabled = any)
                             BarAction(Icons.Outlined.Share, "Share", onClick = { FileOps.share(context, selectedPhotos) }, enabled = any)
-                            BarAction(Icons.Outlined.DriveFileMove, "Move", onClick = { onMove(selectedPhotos.map { it.id }) }, enabled = any)
+                            BarAction(Icons.AutoMirrored.Outlined.DriveFileMove, "Move", onClick = { onMove(selectedPhotos.map { it.id }) }, enabled = any)
                             BarAction(
                                 Icons.Outlined.Compare, "Compare",
                                 onClick = { onCompare(selectedPhotos[0].id, selectedPhotos[1].id) },
