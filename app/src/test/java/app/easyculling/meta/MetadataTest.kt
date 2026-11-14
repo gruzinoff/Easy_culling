@@ -26,7 +26,7 @@ class MetadataTest {
 
     @Test
     fun jpegRoundTrip() {
-        val f = File.createTempFile("t", ".jpg")
+        val f = File.createTempFile("ectest", ".jpg")
         f.writeBytes(fakeJpeg())
         JpegXmp.write(f, 4, 2)
         assertEquals(Xmp.Values(4, 2), Xmp.read(JpegXmp.read(f)))
