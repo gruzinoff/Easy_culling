@@ -38,7 +38,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.FastForward
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Restore
@@ -84,7 +84,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import me.saket.telephoto.zoomable.DoubleClickToZoomListener
 import me.saket.telephoto.zoomable.ZoomSpec
+import me.saket.telephoto.zoomable.ZoomableState
+import androidx.compose.ui.geometry.Offset
 import me.saket.telephoto.zoomable.coil3.ZoomableAsyncImage
 import me.saket.telephoto.zoomable.rememberZoomableImageState
 import me.saket.telephoto.zoomable.rememberZoomableState
@@ -132,6 +135,7 @@ fun ViewerScreen(
     ImmersiveMode(hidden = !controls)
 
     var showLabels by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
     var confirmRestore by remember { mutableStateOf<Int?>(null) }
 
@@ -222,11 +226,7 @@ fun ViewerScreen(
                     Text("${pager.currentPage + 1} / ${ids.size}$raw${if (fromBin) " · in bin" else ""}", color = Color.LightGray, fontSize = 12.sp)
                 }
                 IconButton(onClick = { showInfo = true }) { Icon(Icons.Outlined.Info, "Info", tint = Color.White) }
-                IconButton(onClick = { showLabels = !showLabels }, enabled = !fromBin) {
-                    val c = current?.let { labelColor(it.label) }
-                    if (c != null) Box(Modifier.size(22.dp).background(c, CircleShape).border(1.5.dp, Color.White, CircleShape))
-                    else Icon(Icons.Outlined.Palette, "Colour label", tint = if (fromBin) Color.Gray else Color.White)
-                }
+                IconButton(onClick = { showSettings = true }) { Icon(Icons.Outlined.Settings, "Settings", tint = Color.White) }
                 IconButton(onClick = { current?.let { FileOps.share(context, listOf(it)) } }) {
                     Icon(Icons.Outlined.Share, "Share", tint = Color.White)
                 }
@@ -242,12 +242,6 @@ fun ViewerScreen(
                     }) { Icon(Icons.Outlined.Delete, "Move to bin", tint = Color.White) }
                 }
             }
-            if (showLabels && current != null) {
-                LabelRow(current.label, Modifier.padding(end = 8.dp)) { l ->
-                    showLabels = false
-                    record(repo.setLabel(sid, listOf(current.id), if (current.label == l) 0 else l))
-                }
-            }
           }
         }
 
@@ -260,8 +254,14 @@ fun ViewerScreen(
                         .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))))
                         .windowInsetsPadding(WindowInsets.navigationBars)
                         .padding(bottom = 8.dp, top = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                    horizontalAlignment = Alignment.End,
                 ) {
+                    if (showLabels && current != null) {
+                        LabelRow(current.label, Modifier.padding(end = 8.dp)) { l ->
+                            showLabels = false
+                            record(repo.setLabel(sid, listOf(current.id), if (current.label == l) 0 else l))
+                        }
+                    }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                             UndoRedoButton(
@@ -273,17 +273,10 @@ fun ViewerScreen(
                         }
                         StarBar(rating = current?.rating ?: 0, onRate = ::rate)
                         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                            IconButton(onClick = {
-                                prefs.updateAutoAdvance(!prefs.autoAdvance)
-                                scope.launch {
-                                    snackbar.currentSnackbarData?.dismiss()
-                                    snackbar.showSnackbar(if (prefs.autoAdvance) "Auto-advance on: rating jumps to the next photo" else "Auto-advance off")
-                                }
-                            }) {
-                                Icon(
-                                    Icons.Outlined.FastForward, "Auto-advance",
-                                    tint = if (prefs.autoAdvance) Accent else Color.White.copy(alpha = 0.6f),
-                                )
+                            IconButton(onClick = { showLabels = !showLabels }, enabled = !fromBin) {
+                                val c = current?.let { labelColor(it.label) }
+                                if (c != null) Box(Modifier.size(22.dp).background(c, CircleShape).border(1.5.dp, Color.White, CircleShape))
+                                else Icon(Icons.Outlined.Palette, "Colour label", tint = if (fromBin) Color.Gray else Color.White)
                             }
                         }
                     }
@@ -309,18 +302,22 @@ fun ViewerScreen(
     }
 
     if (showInfo && current != null) InfoSheet(current) { showInfo = false }
+    if (showSettings) SettingsDialog { showSettings = false }
 }
 
 @Composable
 private fun ZoomablePhoto(p: Photo, onTap: () -> Unit) {
     val context = LocalContext.current
+    val zoomMultiple = context.app.prefs.doubleTapZoom
     val state = rememberZoomableImageState(rememberZoomableState(zoomSpec = ZoomSpec(maxZoomFactor = 8f)))
+    val doubleTap = remember(zoomMultiple) { FitMultipleDoubleTap(zoomMultiple.toFloat()) }
     ZoomableAsyncImage(
         model = remember(p.path) { ImageRequest.Builder(context).data(File(p.path)).build() },
         contentDescription = p.name,
         state = state,
         modifier = Modifier.fillMaxSize(),
         onClick = { onTap() },
+        onDoubleClick = doubleTap,
     )
 }
 
@@ -358,6 +355,24 @@ private fun UndoRedoButton(redoMode: Boolean, available: Int, onClick: () -> Uni
             (if (redoMode) "Redo" else "Undo") + if (enabled) " ($available)" else "",
             color = tint, fontSize = 10.sp,
         )
+    }
+}
+
+/**
+ * Double tap: zoom so the photo looks [multiple] times bigger than fit-to-screen, around the tapped
+ * point. Double tap again (or when already zoomed) returns to fit-to-screen.
+ */
+private class FitMultipleDoubleTap(private val multiple: Float) : DoubleClickToZoomListener {
+    override suspend fun onDoubleClick(state: ZoomableState, centroid: Offset) {
+        val t = state.contentTransformation
+        val fraction = state.zoomFraction ?: return
+        if (!t.isSpecified) return
+        if (fraction > 0.01f) {
+            state.resetZoom()
+        } else {
+            // At fit-to-screen, scale is the fit factor relative to the photo's real size.
+            state.zoomTo(zoomFactor = t.scale.scaleX * multiple, centroid = centroid)
+        }
     }
 }
 

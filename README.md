@@ -33,12 +33,16 @@ with the same key (`signing/`).
   *All* selects only what the filter shows. Selected photos can be rated, labelled, shared,
   moved to another folder, compared (exactly 2), or sent to the bin.
 - **Single photo view**: tap a star to set the rating, and tap the same star again to clear it.
-  Pinch or double-tap to zoom. Swipe left/right to go to the next/previous photo. Tap the photo
-  to hide or show the controls; this choice carries over to the next photo. ⏩ turns on
-  auto-advance, which jumps to the next photo after each rating. 🎨 (top bar) sets a colour label.
+  Pinch to zoom; double-tap zooms to 3× (adjustable) around the tapped spot, and double-tap again
+  zooms back out. Swipe left/right to go to the next/previous photo. Tap the photo to hide or
+  show the controls; this choice carries over to the next photo. 🎨 (bottom right) sets a colour
+  label; ⚙️ (top bar) opens Settings.
   ⓘ shows file name, size and EXIF data. The bottom-left button undoes rating, label and bin
   actions one by one and jumps to the affected photo. Long-press it to switch to Redo, and
   long-press again to switch back.
+- **Settings** (⚙️ on the sessions list and in the photo view, or ⋮ → Settings in the gallery):
+  double-tap zoom (2×–5×, default 3×), auto-advance after rating, vibration on star taps, and
+  grid columns (2–6, default 3; twice as many when the phone is horizontal).
 - **Bin**: photos sent to the bin leave the gallery but stay on disk. Rating a photo inside the
   bin asks for confirmation, then brings it back to the gallery. *Delete all* permanently
   deletes the bin's files after a confirmation.

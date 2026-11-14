@@ -33,12 +33,14 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.easyculling.Thumb
+import app.easyculling.app
 import app.easyculling.data.Photo
 import coil3.compose.AsyncImage
 import kotlin.math.PI
@@ -103,6 +105,7 @@ fun StarBar(
     touchSize: Dp = 52.dp,
 ) {
     val haptic = LocalHapticFeedback.current
+    val prefs = LocalContext.current.app.prefs
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         for (n in 1..5) {
             Box(
@@ -112,7 +115,7 @@ fun StarBar(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                     ) {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        if (prefs.haptics) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         onRate(n)
                     },
                 contentAlignment = Alignment.Center,

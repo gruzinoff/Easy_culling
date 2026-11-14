@@ -128,11 +128,12 @@ fun GalleryScreen(
     var showFilter by remember { mutableStateOf(false) }
     var showBulkRate by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf<List<Photo>?>(null) }
     var busy by remember { mutableStateOf(false) }
 
     val landscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
-    val cols = if (landscape) 6 else 3
+    val cols = context.app.prefs.gridColumns * if (landscape) 2 else 1
 
     BackHandler {
         if (ui.selecting) ui.exitSelection() else onBack()
@@ -212,6 +213,7 @@ fun GalleryScreen(
                                     onClick = { menu = false; repo.setSortByTime(sid, !session.sortByTime) },
                                 )
                                 DropdownMenuItem(text = { Text("Rename session") }, onClick = { menu = false; renaming = true })
+                                DropdownMenuItem(text = { Text("Settings") }, onClick = { menu = false; showSettings = true })
                             }
                         }
                     },
@@ -337,6 +339,7 @@ fun GalleryScreen(
             },
         )
     }
+    if (showSettings) SettingsDialog { showSettings = false }
     if (renaming) {
         NameDialog("Rename session", session.name, "Rename", onDismiss = { renaming = false }) {
             repo.renameSession(sid, it); renaming = false

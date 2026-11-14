@@ -204,7 +204,7 @@ private fun BucketGrid(
     val grid = remember(bucket.key) { LazyGridState() }
     val currentSelected by rememberUpdatedState(selected)
     LazyVerticalGrid(
-        columns = GridCells.Fixed(if (landscape) 6 else 3),
+        columns = GridCells.Fixed(LocalContext.current.app.prefs.gridColumns * if (landscape) 2 else 1),
         state = grid,
         modifier = modifier
             .fillMaxSize()

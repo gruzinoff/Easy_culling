@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -58,11 +59,19 @@ fun SessionsScreen(onOpen: (String) -> Unit, onCreated: (String) -> Unit) {
     val repo = LocalContext.current.app.repo
     val sessions by repo.sessions.collectAsState()
     var creating by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<Session?>(null) }
     var deleting by remember { mutableStateOf<Session?>(null) }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Culling sessions") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Culling sessions") },
+                actions = {
+                    IconButton(onClick = { showSettings = true }) { Icon(Icons.Outlined.Settings, "Settings") }
+                },
+            )
+        },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { creating = true },
@@ -93,6 +102,7 @@ fun SessionsScreen(onOpen: (String) -> Unit, onCreated: (String) -> Unit) {
         }
     }
 
+    if (showSettings) SettingsDialog { showSettings = false }
     if (creating) {
         val default = "Session " + SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault()).format(Date())
         NameDialog(title = "New session", initial = default, confirm = "Create", onDismiss = { creating = false }) {
