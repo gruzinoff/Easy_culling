@@ -7,7 +7,16 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.outlined.Redo
+import androidx.compose.material.icons.automirrored.outlined.Undo
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,7 +50,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -127,27 +135,46 @@ fun ViewerScreen(
     var showInfo by remember { mutableStateOf(false) }
     var confirmRestore by remember { mutableStateOf<Int?>(null) }
 
-    fun undoable(message: String, before: List<Photo>, jumpBack: Boolean) {
-        scope.launch {
-            snackbar.currentSnackbarData?.dismiss()
-            val r = snackbar.showSnackbar(message, actionLabel = "Undo", withDismissAction = true)
-            if (r == SnackbarResult.ActionPerformed) {
-                repo.revert(sid, before)
-                if (jumpBack) {
-                    delay(50)
-                    val i = ids.indexOf(before.first().id)
-                    if (i >= 0) pager.scrollToPage(i)
-                }
-            }
+    // Undo/redo history for this viewing session. Each entry holds the photo states before and after.
+    val undoStack = remember { mutableStateListOf<Pair<List<Photo>, List<Photo>>>() }
+    val redoStack = remember { mutableStateListOf<Pair<List<Photo>, List<Photo>>>() }
+    var redoMode by remember { mutableStateOf(false) }
+    var jumpTo by remember { mutableStateOf<Long?>(null) }
+
+    // After undo/redo, show the affected photo (it may have just come back into this list).
+    LaunchedEffect(jumpTo, ids) {
+        val id = jumpTo ?: return@LaunchedEffect
+        val i = ids.indexOf(id)
+        if (i >= 0) {
+            jumpTo = null
+            if (i != pager.currentPage) pager.scrollToPage(i)
         }
+    }
+
+    fun record(before: List<Photo>) {
+        if (before.isEmpty()) return
+        val changed = before.map { it.id }.toSet()
+        val after = repo.session(sid)?.photos?.filter { it.id in changed } ?: return
+        undoStack.add(before to after)
+        redoStack.clear()
+        redoMode = false
+    }
+
+    fun undoOrRedo() {
+        val from = if (redoMode) redoStack else undoStack
+        val to = if (redoMode) undoStack else redoStack
+        val entry = from.removeLastOrNull() ?: return
+        val target = if (redoMode) entry.second else entry.first
+        repo.revert(sid, target)
+        to.add(entry)
+        jumpTo = target.first().id
     }
 
     fun rate(n: Int) {
         val p = current ?: return
         if (fromBin) { confirmRestore = n; return }
         val newRating = if (p.rating == n) 0 else n
-        val before = repo.setRating(sid, listOf(p.id), newRating)
-        undoable(if (newRating == 0) "Rating cleared" else "Rated $newRating★", before, jumpBack = false)
+        record(repo.setRating(sid, listOf(p.id), newRating))
         if (prefs.autoAdvance && newRating > 0 && pager.currentPage < ids.lastIndex) {
             scope.launch {
                 delay(220)
@@ -170,11 +197,16 @@ fun ViewerScreen(
         }
 
         AnimatedVisibility(controls, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.align(Alignment.TopCenter)) {
+          Column(
+              Modifier
+                  .fillMaxWidth()
+                  .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent)))
+                  .windowInsetsPadding(WindowInsets.safeDrawing),
+              horizontalAlignment = Alignment.End,
+          ) {
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent)))
-                    .windowInsetsPadding(WindowInsets.safeDrawing)
                     .padding(horizontal = 4.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -190,23 +222,33 @@ fun ViewerScreen(
                     Text("${pager.currentPage + 1} / ${ids.size}$raw${if (fromBin) " · in bin" else ""}", color = Color.LightGray, fontSize = 12.sp)
                 }
                 IconButton(onClick = { showInfo = true }) { Icon(Icons.Outlined.Info, "Info", tint = Color.White) }
+                IconButton(onClick = { showLabels = !showLabels }, enabled = !fromBin) {
+                    val c = current?.let { labelColor(it.label) }
+                    if (c != null) Box(Modifier.size(22.dp).background(c, CircleShape).border(1.5.dp, Color.White, CircleShape))
+                    else Icon(Icons.Outlined.Palette, "Colour label", tint = if (fromBin) Color.Gray else Color.White)
+                }
                 IconButton(onClick = { current?.let { FileOps.share(context, listOf(it)) } }) {
                     Icon(Icons.Outlined.Share, "Share", tint = Color.White)
                 }
                 if (fromBin) {
                     IconButton(onClick = {
                         val p = current ?: return@IconButton
-                        val before = repo.restore(sid, listOf(p.id))
-                        undoable("Restored to gallery", before, jumpBack = true)
+                        record(repo.restore(sid, listOf(p.id)))
                     }) { Icon(Icons.Outlined.Restore, "Restore", tint = Color.White) }
                 } else {
                     IconButton(onClick = {
                         val p = current ?: return@IconButton
-                        val before = repo.moveToBin(sid, listOf(p.id))
-                        undoable("Moved to bin", before, jumpBack = true)
+                        record(repo.moveToBin(sid, listOf(p.id)))
                     }) { Icon(Icons.Outlined.Delete, "Move to bin", tint = Color.White) }
                 }
             }
+            if (showLabels && current != null) {
+                LabelRow(current.label, Modifier.padding(end = 8.dp)) { l ->
+                    showLabels = false
+                    record(repo.setLabel(sid, listOf(current.id), if (current.label == l) 0 else l))
+                }
+            }
+          }
         }
 
         Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()) {
@@ -220,20 +262,14 @@ fun ViewerScreen(
                         .padding(bottom = 8.dp, top = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    if (showLabels && current != null) {
-                        LabelRow(current.label) { l ->
-                            showLabels = false
-                            val before = repo.setLabel(sid, listOf(current.id), if (current.label == l) 0 else l)
-                            undoable(if (l == 0 || current.label == l) "Label removed" else "Label: ${LabelNames[l - 1]}", before, false)
-                        }
-                    }
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                            IconButton(onClick = { showLabels = !showLabels }, enabled = !fromBin) {
-                                val c = current?.let { labelColor(it.label) }
-                                if (c != null) Box(Modifier.size(22.dp).background(c, CircleShape).border(1.5.dp, Color.White, CircleShape))
-                                else Icon(Icons.Outlined.Palette, "Colour label", tint = if (fromBin) Color.Gray else Color.White)
-                            }
+                            UndoRedoButton(
+                                redoMode = redoMode,
+                                available = if (redoMode) redoStack.size else undoStack.size,
+                                onClick = ::undoOrRedo,
+                                onToggle = { redoMode = !redoMode },
+                            )
                         }
                         StarBar(rating = current?.rating ?: 0, onRate = ::rate)
                         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -265,7 +301,7 @@ fun ViewerScreen(
             confirmButton = {
                 TextButton(onClick = {
                     confirmRestore = null
-                    if (p != null) repo.restore(sid, listOf(p.id), rating = n)
+                    if (p != null) record(repo.restore(sid, listOf(p.id), rating = n))
                 }) { Text("Yes") }
             },
             dismissButton = { TextButton(onClick = { confirmRestore = null }) { Text("No") } },
@@ -288,10 +324,47 @@ private fun ZoomablePhoto(p: Photo, onTap: () -> Unit) {
     )
 }
 
+/** Tap: undo (or redo). Long-press: switch between undo and redo. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LabelRow(current: Int, onPick: (Int) -> Unit) {
+private fun UndoRedoButton(redoMode: Boolean, available: Int, onClick: () -> Unit, onToggle: () -> Unit) {
+    val haptic = LocalHapticFeedback.current
+    val enabled = available > 0
+    val tint = when {
+        !enabled -> Color.White.copy(alpha = 0.35f)
+        redoMode -> Accent
+        else -> Color.White
+    }
+    Column(
+        Modifier
+            .size(width = 64.dp, height = 52.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .combinedClickable(
+                onClick = { if (enabled) onClick() },
+                onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onToggle()
+                },
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            if (redoMode) Icons.AutoMirrored.Outlined.Redo else Icons.AutoMirrored.Outlined.Undo,
+            if (redoMode) "Redo" else "Undo",
+            tint = tint,
+        )
+        Text(
+            (if (redoMode) "Redo" else "Undo") + if (enabled) " ($available)" else "",
+            color = tint, fontSize = 10.sp,
+        )
+    }
+}
+
+@Composable
+private fun LabelRow(current: Int, modifier: Modifier = Modifier, onPick: (Int) -> Unit) {
     Row(
-        Modifier.padding(bottom = 8.dp).background(Color.Black.copy(alpha = 0.6f), CircleShape).padding(horizontal = 12.dp, vertical = 8.dp),
+        modifier.padding(bottom = 8.dp).background(Color.Black.copy(alpha = 0.6f), CircleShape).padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

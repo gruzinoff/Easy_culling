@@ -35,8 +35,10 @@ with the same key (`signing/`).
 - **Single photo view**: tap a star to set the rating, and tap the same star again to clear it.
   Pinch or double-tap to zoom. Swipe left/right to go to the next/previous photo. Tap the photo
   to hide or show the controls; this choice carries over to the next photo. ⏩ turns on
-  auto-advance, which jumps to the next photo after each rating. 🎨 sets a colour label. ⓘ shows
-  file name, size and EXIF data. Every rating and bin action can be undone from the snackbar.
+  auto-advance, which jumps to the next photo after each rating. 🎨 (top bar) sets a colour label.
+  ⓘ shows file name, size and EXIF data. The bottom-left button undoes rating, label and bin
+  actions one by one and jumps to the affected photo. Long-press it to switch to Redo, and
+  long-press again to switch back.
 - **Bin**: photos sent to the bin leave the gallery but stay on disk. Rating a photo inside the
   bin asks for confirmation, then brings it back to the gallery. *Delete all* permanently
   deletes the bin's files after a confirmation.
