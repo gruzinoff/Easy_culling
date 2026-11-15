@@ -283,7 +283,22 @@ as an input box.
 
 ---
 
-## 13. Describe photos with text, for finding them later (ON HOLD)
+## 13. Move keepers: highlight the whole selected range, no tick
+
+**Behaviour**
+- In the Move keepers dialog, choosing a threshold highlights **every button from that rating up
+  to 5★** in **green**, the same green as culled photos:
+  - tap **3★** → 3★, 4★ and 5★ are green;
+  - tap **1★** → all five are green;
+  - tap **5★** → only 5★ is green.
+- The buttons below the threshold stay in the normal dark style.
+- **No tick mark** on the selected button, so the labels keep their full width and don't shift.
+- The green buttons have dark text for contrast. Tapping any button moves the threshold there.
+- The line under the buttons stays: "Move 56 photos rated ≥ 3★ to …?".
+
+---
+
+## 14. Describe photos with text, for finding them later (ON HOLD)
 
 **Goal.** Attach a short piece of text to one photo (single photo view) or many at once (gallery
 selection), so the photo can be found later, for example "Lisbon, Alfama, sunset" or "Masha's
