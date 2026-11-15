@@ -408,3 +408,15 @@ Keywords can be added later if needed.
 - To verify on the phone: whether Google Photos and Samsung Gallery show or search this field.
   Lightroom does. Google Photos and Samsung Gallery mostly use their own descriptions and may
   ignore it.
+
+---
+
+## Ideas considered and not pursued
+
+- **Receiving photos from the Sony a6700 directly in the app.** Copying Sony's own wireless
+  transfer (what Creators' App does) was rejected: it is a private, undocumented protocol and
+  could break with any camera firmware update. Photos keep coming in via Sony Creators' App.
+  Two alternatives were noted in case this comes back:
+  - **Wi-Fi via the camera's FTP Transfer function** (wireless, works in the background,
+    documented by Sony). Check first whether the a6700 menu has Network → FTP Transfer.
+  - **USB-C cable import** (Mass Storage/MTP).
