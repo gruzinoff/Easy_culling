@@ -262,7 +262,28 @@ goes to the background, so a crash loses at most a minute.
 
 ---
 
-## 12. Describe photos with text, for finding them later (ON HOLD)
+## 12. Session name shown in a pale outlined frame with a "Session" label
+
+**Reference.** The Material "outlined text field" look: a thin rounded frame with a small label
+sitting in a gap of the top border, at the top-left. Here it is used as a *display* frame, not
+as an input box.
+
+**Behaviour**
+- In the gallery top bar, the session name sits inside a **thin, pale, rounded outline**:
+  1 dp, light grey at low contrast (about 25% white on the dark background), corners about 6 dp.
+- The word **"Session"** is written in **small letters** (about 11 sp, grey) in a gap of the
+  top border at the **top-left**, like "Label" in the reference.
+- The frame is deliberately pale, so it reads as a caption and not as an input field.
+- The "Rated X / Y · Culled N" line stays **below the frame**, unchanged.
+- Tapping the name still edits it in place (item 8). While editing, the outline and the
+  "Session" label turn the accent colour, because then it really is an input. Saving or
+  cancelling returns it to the pale style.
+- The top bar becomes slightly taller to fit the frame plus the stats line. Long names are
+  cut with "…" inside the frame.
+
+---
+
+## 13. Describe photos with text, for finding them later (ON HOLD)
 
 **Goal.** Attach a short piece of text to one photo (single photo view) or many at once (gallery
 selection), so the photo can be found later, for example "Lisbon, Alfama, sunset" or "Masha's
