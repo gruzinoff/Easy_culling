@@ -214,7 +214,41 @@ goes to the background, so a crash loses at most a minute.
 
 ---
 
-## 9. Describe photos with text, for finding them later (ON HOLD)
+## 9. Add photos: sort by date (newest first by default)
+
+**Behaviour**
+- In the Add photos browser, inside a folder, photos are sorted by **capture date**.
+- A sort button in the top bar switches between **Newest first** (default) and **Oldest first**.
+  The current order is shown in the button label or tooltip.
+- The choice is remembered for next time.
+- Ties (same second) are ordered by file name.
+- The folder list keeps its current order: folders with the most recent photos first.
+- Drag-to-select keeps working on whatever order is shown, so a range always means
+  "what you see between the two photos".
+
+---
+
+## 10. Grid size by pinch gesture (remove it from Settings)
+
+**Behaviour**
+- In the **gallery** (Gallery and Bin tabs) and in the **Add photos** browser, a two-finger pinch
+  changes the number of columns:
+  - fingers **apart** (zoom in) → fewer, bigger photos;
+  - fingers **together** (zoom out) → more, smaller photos.
+- One column per step, from **2 to 6** columns (twice as many when the phone is horizontal).
+  A short haptic tick on each step.
+- The photo under your fingers stays in view while the grid changes.
+- Pinching never selects or opens photos, and it does not interfere with scrolling,
+  long-press drag-select or the fast-scroll handle.
+- The size is **remembered separately** for the gallery and for the Add photos browser
+  (small thumbnails are handy for picking hundreds of photos, bigger ones for judging).
+  Default 3 columns for both.
+- **Settings → Grid columns is removed.** The existing setting value becomes the gallery's
+  starting size.
+
+---
+
+## 11. Describe photos with text, for finding them later (ON HOLD)
 
 **Goal.** Attach a short piece of text to one photo (single photo view) or many at once (gallery
 selection), so the photo can be found later, for example "Lisbon, Alfama, sunset" or "Masha's
