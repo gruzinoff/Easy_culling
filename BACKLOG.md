@@ -148,7 +148,51 @@ wear on the memory. But moving on every rating would:
 
 ---
 
-## 7. Describe photos with text, for finding them later
+## 7. Track active culling time
+
+**Goal.** Show how long the culling actually took: time spent working on the session, not just
+"finished minus started".
+
+**What is counted**
+- The session's creation date and time is already saved, and stays shown as "Started …".
+- **Active time** is counted only while the app is on screen **and** one of this session's
+  screens is open (gallery, single photo view, compare, add photos, move folder picker).
+- Not counted: the app in the background, the screen off, the sessions list, Settings.
+- **Idle cut-off.** If there is no touch for **3 minutes**, counting pauses until the next touch,
+  and the idle minutes are not counted. This stops "phone left on the table with the app open"
+  from inflating the time. Thinking about a photo for a minute or two still counts.
+- Time keeps adding up across days and app restarts until the session is finished. Reopening a
+  finished session continues the same counter.
+
+**Where it is shown**
+- **Finished gallery screen** (item 5), in the stats: **"Culling time 3h 12m"**, plus
+  "Started 14 Nov 2026".
+- **Sessions list**, on a finished session's line: **"1684 processed in 3h 12m · culled 214"**.
+- Format: under 1 h → "47m"; otherwise "3h 12m".
+
+**Data change.** The session stores `activeMillis`. The app saves it every minute and whenever it
+goes to the background, so a crash loses at most a minute.
+
+---
+
+## 8. New session without the naming step; rename by tapping the name
+
+**Behaviour**
+- **New session** creates the session immediately with an automatic name: the creation date and
+  time in ISO format, **`2026-11-15 04:20:33`** (`yyyy-MM-dd HH:mm:ss`, phone's local time). The name dialog is removed. It goes
+  straight to Add photos, and then to the gallery.
+- In the gallery, **tapping the session name** in the top bar turns it into an editable text
+  field in place, with the keyboard open and the whole name selected so typing replaces it. No pen
+  icon and no dialog.
+  - Keyboard **Done** or tapping anywhere else saves.
+  - Back cancels the edit.
+  - An empty name is not saved; the previous name stays.
+- "Rename session" is removed from the gallery ⋮ menu. The sessions list keeps Rename in its ⋮
+  menu.
+
+---
+
+## 9. Describe photos with text, for finding them later
 
 **Goal.** Attach a short piece of text to one photo (single photo view) or many at once (gallery
 selection), so the photo can be found later, for example "Lisbon, Alfama, sunset" or "Masha's
@@ -190,47 +234,3 @@ Keywords can be added later if needed.
 - To verify on the phone: whether Google Photos and Samsung Gallery show or search this field.
   Lightroom does. Google Photos and Samsung Gallery mostly use their own descriptions and may
   ignore it.
-
----
-
-## 8. Track active culling time
-
-**Goal.** Show how long the culling actually took: time spent working on the session, not just
-"finished minus started".
-
-**What is counted**
-- The session's creation date and time is already saved, and stays shown as "Started …".
-- **Active time** is counted only while the app is on screen **and** one of this session's
-  screens is open (gallery, single photo view, compare, add photos, move folder picker).
-- Not counted: the app in the background, the screen off, the sessions list, Settings.
-- **Idle cut-off.** If there is no touch for **3 minutes**, counting pauses until the next touch,
-  and the idle minutes are not counted. This stops "phone left on the table with the app open"
-  from inflating the time. Thinking about a photo for a minute or two still counts.
-- Time keeps adding up across days and app restarts until the session is finished. Reopening a
-  finished session continues the same counter.
-
-**Where it is shown**
-- **Finished gallery screen** (item 5), in the stats: **"Culling time 3h 12m"**, plus
-  "Started 14 Nov 2026".
-- **Sessions list**, on a finished session's line: **"1684 processed in 3h 12m · culled 214"**.
-- Format: under 1 h → "47m"; otherwise "3h 12m".
-
-**Data change.** The session stores `activeMillis`. The app saves it every minute and whenever it
-goes to the background, so a crash loses at most a minute.
-
----
-
-## 9. New session without the naming step; rename by tapping the name
-
-**Behaviour**
-- **New session** creates the session immediately with an automatic name: the creation date and
-  time in ISO format, **`2026-11-15 04:20:33`** (`yyyy-MM-dd HH:mm:ss`, phone's local time). The name dialog is removed. It goes
-  straight to Add photos, and then to the gallery.
-- In the gallery, **tapping the session name** in the top bar turns it into an editable text
-  field in place, with the keyboard open and the whole name selected so typing replaces it. No pen
-  icon and no dialog.
-  - Keyboard **Done** or tapping anywhere else saves.
-  - Back cancels the edit.
-  - An empty name is not saved; the previous name stays.
-- "Rename session" is removed from the gallery ⋮ menu. The sessions list keeps Rename in its ⋮
-  menu.
