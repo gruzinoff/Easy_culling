@@ -3,7 +3,7 @@
 Nothing here is built yet. Items are written so they can be picked up directly.
 
 **Build plan.** Several small builds, each tested on the phone before the next:
-~~**8 + 4**~~ (done, build 7) → **1–3** → **6** → **5** → **7**. Item 9 is on hold.
+All of 1–8 done (builds 7–9). Item 9 is on hold.
 
 **Terms used below**
 - **Culled photo**: a photo moved out of its import folder by this app, to any folder: the
@@ -14,7 +14,7 @@ Nothing here is built yet. Items are written so they can be picked up directly.
 
 ---
 
-## 1. Culled photos stay in the gallery, clearly marked
+## 1. Culled photos stay in the gallery, clearly marked (DONE: build 9)
 
 **Problem.** Moving photos currently removes them from the session. The gallery then shows
 "No photos match the filter", which looks as if the photos are lost.
@@ -50,7 +50,7 @@ Nothing here is built yet. Items are written so they can be picked up directly.
 
 ---
 
-## 2. "Culled" filter
+## 2. "Culled" filter (DONE: build 9)
 
 **Behaviour**
 - The filter panel gets a new row, **Culled**, with three choices:
@@ -62,7 +62,7 @@ Nothing here is built yet. Items are written so they can be picked up directly.
 
 ---
 
-## 3. "Culled" count in the gallery header
+## 3. "Culled" count in the gallery header (DONE: build 9)
 
 **Behaviour**
 - The line under the session name becomes **"Rated 120 / 1000 · Culled 57"**.
@@ -82,7 +82,7 @@ Nothing here is built yet. Items are written so they can be picked up directly.
 
 ---
 
-## 5. Ending a session: "Session finished" screen and stats
+## 5. Ending a session: "Session finished" screen and stats (DONE: build 9)
 
 **Purpose.** Make it visible that the job is done, and how much work it was.
 
@@ -123,12 +123,13 @@ finished state and tick disappear until it is finished again.
   the session today and their number would otherwise be lost.
 
 **Technical note: "Open folder".** Android has no single reliable way to open a folder in
-another app. The plan is to try Samsung My Files first and, if that fails, show the folder's
-photos in an in-app grid. This needs testing on the phone.
+another app. Built: try Samsung My Files first, then any app that can show a folder; if both
+fail, a message shows the folder path. The in-app grid fallback was not built; add it only if
+the phone can't open the folder.
 
 ---
 
-## 6. Default culled folder + one-step "Move keepers"
+## 6. Default culled folder + one-step "Move keepers" (DONE: build 9)
 
 **Default culled folder**
 - On first launch, after granting file access, the app asks you to **choose the folder for culled
@@ -164,7 +165,7 @@ wear on the memory. But moving on every rating would:
 
 ---
 
-## 7. Track active culling time
+## 7. Track active culling time (DONE: build 9)
 
 **Goal.** Show how long the culling actually took: time spent working on the session, not just
 "finished minus started".
