@@ -2,9 +2,12 @@
 
 Nothing here is built yet. Items are written so they can be picked up directly.
 
+**Build plan.** Several small builds, each tested on the phone before the next:
+**8 + 4** → **1–3** → **6** → **5** → **7**. Item 9 is on hold.
+
 **Terms used below**
-- **Culled photo**: a keeper that was moved to another folder from the session (for example, from
-  the camera import folder to a "Culled" folder).
+- **Culled photo**: a photo moved out of its import folder by this app, to any folder: the
+  default culled folder or any other.
 - **Removed photo**: a photo whose files were permanently deleted from the bin.
 - **Open photo**: a photo still in the session that is neither culled nor removed. It is either in
   the gallery or in the bin.
@@ -38,6 +41,12 @@ Nothing here is built yet. Items are written so they can be picked up directly.
   location.
 - A culled photo cannot be sent to the bin (the bin button is disabled for it). This prevents
   deleting a keeper by accident. To get rid of one, use the phone's file manager.
+- **Any move counts as culled**, whether to the default culled folder (item 6) or to another folder.
+  The chip always shows the actual folder.
+- **Photos added from the culled folder are culled.** When Add photos brings in photos that are
+  in the default culled folder (item 6), they are marked culled automatically, and their ratings
+  and labels are read back from the files. This also repairs the sessions culled before this
+  feature existed: add the photos again from the culled folder.
 
 ---
 
@@ -125,6 +134,8 @@ photos in an in-app grid. This needs testing on the phone.
 - On first launch, after granting file access, the app asks you to **choose the folder for culled
   photos** (folder picker with a "New folder" button, for example `Pictures/Culled`). This folder
   should hold only culled photos.
+- For the existing installation, the same question is asked **once on the first start after this
+  update**. It can be skipped. If skipped, it is asked again the first time Move keepers is tapped.
 - It can be changed later in **Settings → Culled folder**.
 - The manual Select → Move flow opens with this folder pre-selected. Any other folder can still
   be chosen.
@@ -137,6 +148,11 @@ photos in an in-app grid. This needs testing on the phone.
   dialog, defaults to 3★, and remembers the last value.
 - On confirm, all matching photos that are not culled yet are moved in one batch (JPEG and its RAW
   together) and become **culled** (item 1).
+- **Then the rest.** When the move is done, the app asks: **"Move the remaining 1424 photos to the
+  bin?"** [Yes] [Not now]. "Remaining" means open photos in the gallery that are below the
+  threshold. Yes sends them to the bin (undoable). Permanently deleting from the bin stays a
+  separate, deliberate step ("Delete all" in the Bin tab). After that, the session is ready to
+  finish (item 5).
 - Moving out again is not automatic. If a culled photo is later re-rated below the threshold, it
   stays where it is. It is still marked culled, and you can move it back manually if wanted.
 
@@ -158,7 +174,7 @@ wear on the memory. But moving on every rating would:
 - **Active time** is counted only while the app is on screen **and** one of this session's
   screens is open (gallery, single photo view, compare, add photos, move folder picker).
 - Not counted: the app in the background, the screen off, the sessions list, Settings.
-- **Idle cut-off.** If there is no touch for **3 minutes**, counting pauses until the next touch,
+- **Idle cut-off (confirmed: 3 minutes).** If there is no touch for **3 minutes**, counting pauses until the next touch,
   and the idle minutes are not counted. This stops "phone left on the table with the app open"
   from inflating the time. Thinking about a photo for a minute or two still counts.
 - Time keeps adding up across days and app restarts until the session is finished. Reopening a
@@ -169,6 +185,8 @@ wear on the memory. But moving on every rating would:
   "Started 14 Nov 2026".
 - **Sessions list**, on a finished session's line: **"1684 processed in 3h 12m · culled 214"**.
 - Format: under 1 h → "47m"; otherwise "3h 12m".
+- Sessions created before this feature have no recorded time. They show "—" for culling time and
+  the sessions list shows "1684 processed" without "in …".
 
 **Data change.** The session stores `activeMillis`. The app saves it every minute and whenever it
 goes to the background, so a crash loses at most a minute.
@@ -187,12 +205,15 @@ goes to the background, so a crash loses at most a minute.
   - Keyboard **Done** or tapping anywhere else saves.
   - Back cancels the edit.
   - An empty name is not saved; the previous name stays.
+- **Leaving Add photos without adding anything** keeps the empty session. It opens the gallery
+  with "No photos yet" and an Add photos button (item 4). It can be deleted from the sessions
+  list.
 - "Rename session" is removed from the gallery ⋮ menu. The sessions list keeps Rename in its ⋮
   menu.
 
 ---
 
-## 9. Describe photos with text, for finding them later
+## 9. Describe photos with text, for finding them later (ON HOLD)
 
 **Goal.** Attach a short piece of text to one photo (single photo view) or many at once (gallery
 selection), so the photo can be found later, for example "Lisbon, Alfama, sunset" or "Masha's
