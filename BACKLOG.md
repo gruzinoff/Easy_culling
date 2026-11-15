@@ -324,7 +324,25 @@ as an input box.
 
 ---
 
-## 15. Describe photos with text, for finding them later (ON HOLD)
+## 15. Empty gallery because of the filter: say why, offer Clear filter
+
+**Behaviour**
+- When the Gallery tab shows no photos **only because of the filter**, the centre of the screen
+  shows:
+  - **"No photos match the filter"**;
+  - under it, the active filter in plain words, for example
+    **"below 3★ · only culled"**, **"exactly 5★ · Red label"** or **"unrated only · hide culled"**;
+  - a **Clear filter** button that resets all filters in one tap, and a smaller
+    **Edit filter** button that opens the filter panel.
+- The same short description of the active filter also shows in the header line instead of
+  "showing N", for example "Rated 57 / 281 · Culled 57 · Filter: below 3★ · only culled (0)",
+  so it is visible even when the gallery isn't empty.
+- Other empty states are unchanged: "No photos yet" + Add photos, "The bin is empty",
+  "All photos are in the bin".
+
+---
+
+## 16. Describe photos with text, for finding them later (ON HOLD)
 
 **Goal.** Attach a short piece of text to one photo (single photo view) or many at once (gallery
 selection), so the photo can be found later, for example "Lisbon, Alfama, sunset" or "Masha's
