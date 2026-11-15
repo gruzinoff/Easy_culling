@@ -283,7 +283,7 @@ as an input box.
 
 ---
 
-## 13. Move keepers: highlight the whole selected range, no tick
+## 13. Move keepers dialog: range highlight and destination folder line
 
 **Behaviour**
 - In the Move keepers dialog, choosing a threshold highlights **every button from that rating up
@@ -294,7 +294,18 @@ as an input box.
 - The buttons below the threshold stay in the normal dark style.
 - **No tick mark** on the selected button, so the labels keep their full width and don't shift.
 - The green buttons have dark text for contrast. Tapping any button moves the threshold there.
-- The line under the buttons stays: "Move 56 photos rated ≥ 3★ to …?".
+- The line under the buttons becomes "Move 56 photos rated ≥ 3★?" (the folder is shown
+  below instead).
+
+**Destination folder**
+- The "Change folder" text button is replaced by:
+  - a caption: **"Your files will be saved in the folder:"**
+  - under it, a row with the **folder name** (e.g. "Pictures/Culled", in normal text, cut with
+    "…" in the middle if long) and, at the right end of the row, an **icon button**
+    (folder-edit icon) that opens the folder chooser.
+- After choosing a new folder, the dialog comes back with the new folder shown and the same
+  threshold still selected. The new folder also becomes the default culled folder, the same as
+  changing it in Settings.
 
 ---
 
