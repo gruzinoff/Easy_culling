@@ -309,7 +309,22 @@ as an input box.
 
 ---
 
-## 14. Describe photos with text, for finding them later (ON HOLD)
+## 14. Filter: switching to "<" resets "Only culled" to "Show"
+
+**Problem.** Rating filter "< 3★" combined with Culled "Only culled" almost always shows nothing
+(keepers are rated high), and it isn't obvious why the gallery is empty.
+
+**Behaviour**
+- In the filter panel, when the operator is switched to **"<"** and the Culled row is on
+  **"Only culled"**, the Culled row automatically switches to **"Show"**.
+- Reasoning: "<" is used to act on the weak photos. The rare case "culled photos below N★" can
+  still be reached with "=" or by choosing "Only culled" again after switching to "<". Choosing it
+  again by hand is respected.
+- Nothing else changes: "≥" and "=" keep the Culled choice, and "Hide culled" is kept with "<".
+
+---
+
+## 15. Describe photos with text, for finding them later (ON HOLD)
 
 **Goal.** Attach a short piece of text to one photo (single photo view) or many at once (gallery
 selection), so the photo can be found later, for example "Lisbon, Alfama, sunset" or "Masha's
