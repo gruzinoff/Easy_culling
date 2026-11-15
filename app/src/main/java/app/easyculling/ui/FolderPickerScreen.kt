@@ -49,45 +49,52 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import app.easyculling.app
 import app.easyculling.data.FileOps
 import kotlinx.coroutines.launch
 import java.io.File
 
-/** Choose (or create) the folder to move the selected photos to. */
+/**
+ * Browse the phone's folders and pick one. Used for moving photos, and for choosing the
+ * default culled folder.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FolderPickerScreen(sid: String, ids: List<Long>, onBack: () -> Unit, onMoved: (String) -> Unit) {
-    val context = LocalContext.current
-    val repo = context.app.repo
-    val prefs = context.app.prefs
-    val scope = rememberCoroutineScope()
+fun FolderBrowser(
+    title: String,
+    initialDir: String?,
+    confirmLabel: String,
+    cancelLabel: String,
+    onConfirm: (File) -> Unit,
+    onCancel: () -> Unit,
+    explanation: String? = null,
+    busyProgress: Float? = null,
+) {
+    val prefs = LocalContext.current.app.prefs
     val root = remember { Environment.getExternalStorageDirectory() }
-    var dir by remember {
-        mutableStateOf(File(prefs.lastMoveDir).takeIf { it.isDirectory } ?: root)
-    }
+    var dir by remember { mutableStateOf(initialDir?.let(::File)?.takeIf { it.isDirectory } ?: root) }
     var refresh by remember { mutableIntStateOf(0) }
     val subdirs = remember(dir, refresh) {
         dir.listFiles { f -> f.isDirectory && !f.name.startsWith(".") }
             ?.sortedBy { it.name.lowercase() } ?: emptyList()
     }
     var newFolder by remember { mutableStateOf(false) }
-    var moving by remember { mutableStateOf(false) }
-    var progress by remember { mutableFloatStateOf(0f) }
-    var errors by remember { mutableStateOf<List<String>?>(null) }
+    val busy = busyProgress != null
 
     fun up() { dir = dir.parentFile?.takeIf { dir != root } ?: root }
-    BackHandler(enabled = !moving) { if (dir != root) up() else onBack() }
+    BackHandler(enabled = !busy) { if (dir != root) up() else onCancel() }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+                navigationIcon = { IconButton(onClick = onCancel) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
                 title = {
                     Column {
-                        Text("Move ${ids.size} photos", fontSize = 18.sp)
+                        Text(title, fontSize = 18.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
-                            "/" + dir.path.removePrefix(root.path).trimStart('/'),
+                            "/" + FileOps.displayPath(dir.path).let { if (dir == root) "" else it },
                             fontSize = 12.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         )
                     }
@@ -100,49 +107,41 @@ fun FolderPickerScreen(sid: String, ids: List<Long>, onBack: () -> Unit, onMoved
         bottomBar = {
             Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
                 Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(12.dp)) {
-                    if (moving) LinearProgressIndicator(progress = { progress }, Modifier.fillMaxWidth().padding(bottom = 8.dp))
+                    if (busyProgress != null) {
+                        LinearProgressIndicator(progress = { busyProgress }, Modifier.fillMaxWidth().padding(bottom = 8.dp))
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = onBack, enabled = !moving, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                        OutlinedButton(onClick = onCancel, enabled = !busy, modifier = Modifier.weight(1f)) { Text(cancelLabel) }
                         Button(
-                            enabled = !moving && dir.canWrite(),
+                            enabled = !busy && dir.canWrite(),
                             modifier = Modifier.weight(2f),
-                            onClick = {
-                                moving = true
-                                val photos = repo.session(sid)?.photos?.filter { it.id in ids.toSet() } ?: emptyList()
-                                scope.launch {
-                                    repo.metadata.flush()
-                                    val r = FileOps.move(context, photos, dir) { i -> progress = i.toFloat() / photos.size.coerceAtLeast(1) }
-                                    repo.removePhotos(sid, r.done)
-                                    prefs.updateLastMoveDir(dir.path)
-                                    moving = false
-                                    if (r.errors.isEmpty()) onMoved("Moved ${r.done.size} photos to ${dir.name}")
-                                    else errors = r.errors
-                                }
-                            },
-                        ) { Text("Move here") }
+                            onClick = { onConfirm(dir) },
+                        ) { Text(confirmLabel) }
                     }
                 }
             }
         },
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad)) {
+            if (explanation != null) {
+                Text(explanation, color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+            }
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val shortcuts = listOf(
+                val shortcuts = listOfNotNull(
+                    prefs.culledFolder?.let { "Culled folder" to File(it) },
                     "Camera" to File(root, "DCIM/Camera"),
                     "Pictures" to File(root, Environment.DIRECTORY_PICTURES),
                     "DCIM" to File(root, Environment.DIRECTORY_DCIM),
                     "Download" to File(root, Environment.DIRECTORY_DOWNLOADS),
                     "Last used" to File(prefs.lastMoveDir),
                 )
-                shortcuts.filter { it.second.isDirectory }.forEach { (name, f) ->
+                shortcuts.filter { it.second.isDirectory }.distinctBy { it.second.path }.forEach { (name, f) ->
                     AssistChip(onClick = { dir = f }, label = { Text(name) })
                 }
             }
             LazyColumn(Modifier.fillMaxSize()) {
                 if (dir != root) {
-                    item {
-                        FolderRow("..", Icons.Outlined.SubdirectoryArrowLeft) { up() }
-                    }
+                    item { FolderRow("..", Icons.Outlined.SubdirectoryArrowLeft) { up() } }
                 }
                 items(subdirs, key = { it.path }) { f ->
                     FolderRow(f.name, Icons.Outlined.Folder) { dir = f }
@@ -158,14 +157,96 @@ fun FolderPickerScreen(sid: String, ids: List<Long>, onBack: () -> Unit, onMoved
             if (f.mkdirs() || f.isDirectory) { dir = f; refresh++ }
         }
     }
-    errors?.let { e ->
-        AlertDialog(
-            onDismissRequest = { errors = null; onMoved("Some photos could not be moved") },
-            title = { Text("${e.size} photos were not moved") },
-            text = { Text(e.take(8).joinToString("\n")) },
-            confirmButton = { Button(onClick = { errors = null; onMoved("Some photos could not be moved") }) { Text("OK") } },
+}
+
+/** Full-screen [FolderBrowser] shown as a dialog over the current screen. */
+@Composable
+fun FolderBrowserDialog(
+    title: String,
+    initialDir: String?,
+    confirmLabel: String,
+    explanation: String? = null,
+    onDismiss: () -> Unit,
+    onConfirm: (File) -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        FolderBrowser(
+            title = title, initialDir = initialDir, confirmLabel = confirmLabel, cancelLabel = "Cancel",
+            explanation = explanation, onConfirm = onConfirm, onCancel = onDismiss,
         )
     }
+}
+
+/** One-time question after install/update: where should culled photos go? */
+@Composable
+fun CulledFolderSetup(onDone: () -> Unit) {
+    val prefs = LocalContext.current.app.prefs
+    FolderBrowser(
+        title = "Folder for culled photos",
+        initialDir = Environment.getExternalStorageDirectory().path + "/" + Environment.DIRECTORY_PICTURES,
+        confirmLabel = "Use this folder",
+        cancelLabel = "Skip",
+        explanation = "Choose (or create with the folder button above) the folder where your keepers will " +
+            "go, for example Pictures/Culled. It should hold only culled photos. You can change it later in Settings.",
+        onConfirm = { prefs.updateCulledFolder(it.path); onDone() },
+        onCancel = { prefs.markCulledFolderAsked(); onDone() },
+    )
+}
+
+/** Move the selected photos to a folder (pre-set to the culled folder). They become culled. */
+@Composable
+fun FolderPickerScreen(sid: String, ids: List<Long>, onBack: () -> Unit, onMoved: (String) -> Unit) {
+    val context = LocalContext.current
+    val repo = context.app.repo
+    val prefs = context.app.prefs
+    val scope = rememberCoroutineScope()
+    var progress by remember { mutableStateOf<Float?>(null) }
+    var errors by remember { mutableStateOf<List<String>?>(null) }
+    var doneMessage by remember { mutableStateOf("") }
+
+    FolderBrowser(
+        title = "Move ${ids.size} photos",
+        initialDir = prefs.culledFolder ?: prefs.lastMoveDir,
+        confirmLabel = "Move here",
+        cancelLabel = "Cancel",
+        busyProgress = progress,
+        onCancel = onBack,
+        onConfirm = { dir ->
+            val photos = repo.session(sid)?.photos?.filter { it.id in ids.toSet() } ?: emptyList()
+            progress = 0f
+            scope.launch {
+                val r = moveAndMarkCulled(context, sid, photos, dir) { progress = it }
+                prefs.updateLastMoveDir(dir.path)
+                progress = null
+                doneMessage = "Moved ${r.done.size} photos to ${FileOps.displayPath(dir.path)}"
+                if (r.errors.isEmpty()) onMoved(doneMessage) else errors = r.errors
+            }
+        },
+    )
+
+    errors?.let { e ->
+        AlertDialog(
+            onDismissRequest = { errors = null; onMoved(doneMessage) },
+            title = { Text("${e.size} photos were not moved") },
+            text = { Text(e.take(8).joinToString("\n")) },
+            confirmButton = { Button(onClick = { errors = null; onMoved(doneMessage) }) { Text("OK") } },
+        )
+    }
+}
+
+/** Moves photos (JPEG + RAW together) and records them as culled in the session. */
+suspend fun moveAndMarkCulled(
+    context: android.content.Context,
+    sid: String,
+    photos: List<app.easyculling.data.Photo>,
+    dir: File,
+    progress: (Float) -> Unit,
+): FileOps.Result {
+    val repo = context.app.repo
+    repo.metadata.flush()
+    val r = FileOps.move(context, photos, dir) { i -> progress(i.toFloat() / photos.size.coerceAtLeast(1)) }
+    repo.markCulled(sid, r.moved, dir.path)
+    return r
 }
 
 @Composable

@@ -114,8 +114,8 @@ private fun ComparePane(sid: String, p: Photo, zoom: ZoomableState, modifier: Mo
                     p.name, color = Color.White, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(start = 12.dp).weight(1f),
                 )
-                IconButton(onClick = { repo.moveToBin(sid, listOf(p.id)) }) {
-                    Icon(Icons.Outlined.Delete, "Move to bin", tint = Color.White)
+                IconButton(enabled = !p.isCulled, onClick = { repo.moveToBin(sid, listOf(p.id)) }) {
+                    Icon(Icons.Outlined.Delete, "Move to bin", tint = if (p.isCulled) Color.Gray else Color.White)
                 }
             }
             StarBar(

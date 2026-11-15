@@ -47,6 +47,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.CheckBox
@@ -72,6 +73,9 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -106,6 +110,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.easyculling.app
 import app.easyculling.data.FileOps
+import app.easyculling.data.CulledMode
 import app.easyculling.data.FilterOp
 import app.easyculling.data.Photo
 import app.easyculling.data.RatingFilter
@@ -154,6 +159,17 @@ fun GalleryScreen(
         editingName = false
     }
     var showSettings by remember { mutableStateOf(false) }
+    val prefs = context.app.prefs
+    var keepersDialog by remember { mutableStateOf(false) }
+    var chooseCulledFolder by remember { mutableStateOf(false) }
+    var binRest by remember { mutableStateOf<List<Long>?>(null) }
+    var moveProgress by remember { mutableStateOf<Float?>(null) }
+    var endDialog by remember { mutableStateOf(false) }
+    var suggestFinish by remember { mutableStateOf(false) }
+    val finishedView = session.isFinished && !ui.showFinishedGrid
+    fun startMoveKeepers() {
+        if (prefs.culledFolder == null) chooseCulledFolder = true else keepersDialog = true
+    }
     var confirmDelete by remember { mutableStateOf<List<Photo>?>(null) }
     var busy by remember { mutableStateOf(false) }
 
@@ -184,6 +200,14 @@ fun GalleryScreen(
         if (idx !in fullyVisible) {
             val rowStart = idx - idx % cols
             grid.scrollToItem((rowStart - cols * 2).coerceAtLeast(0))
+        }
+    }
+
+    // Everything culled or removed: suggest finishing (once; afterwards a banner offers it).
+    LaunchedEffect(session.allProcessed, session.isFinished) {
+        if (session.allProcessed && !session.isFinished && !ui.finishSuggested) {
+            ui.finishSuggested = true
+            suggestFinish = true
         }
     }
 
@@ -229,8 +253,10 @@ fun GalleryScreen(
                                 }
                                 val rated = active.count { it.rating > 0 }
                                 val f = if (ui.filter.isActive && !inBin) " · showing ${shown.size}" else ""
+                                val c = session.culledCount.let { if (it > 0) " · Culled $it" else "" }
                                 Text(
-                                    "Rated $rated / ${active.size}$f",
+                                    if (session.isFinished) "Finished · processed ${session.processedCount}"
+                                    else "Rated $rated / ${active.size}$c$f",
                                     fontSize = 12.sp, color = Color.Gray,
                                 )
                             }
@@ -241,6 +267,19 @@ fun GalleryScreen(
                             IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "Menu") }
                             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                                 DropdownMenuItem(text = { Text("Add photos") }, onClick = { menu = false; onAddPhotos() })
+                                if (!session.isFinished) {
+                                    DropdownMenuItem(text = { Text("Move keepers") }, onClick = { menu = false; startMoveKeepers() })
+                                    DropdownMenuItem(text = { Text("End culling session") }, onClick = { menu = false; endDialog = true })
+                                } else {
+                                    DropdownMenuItem(
+                                        text = { Text(if (ui.showFinishedGrid) "Show summary" else "Show photos") },
+                                        onClick = { menu = false; ui.showFinishedGrid = !ui.showFinishedGrid },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Reopen session") },
+                                        onClick = { menu = false; repo.reopen(sid); ui.showFinishedGrid = false },
+                                    )
+                                }
                                 DropdownMenuItem(
                                     text = { Text(if (session.sortByTime) "Sort by file name" else "Sort by capture time") },
                                     onClick = { menu = false; repo.setSortByTime(sid, !session.sortByTime) },
@@ -250,7 +289,7 @@ fun GalleryScreen(
                         }
                     },
                 )
-                PrimaryTabRow(selectedTabIndex = ui.tab) {
+                if (!finishedView) PrimaryTabRow(selectedTabIndex = ui.tab) {
                     Tab(
                         selected = ui.tab == 0,
                         onClick = { if (ui.tab != 0) { ui.exitSelection(); ui.tab = 0 } },
@@ -265,7 +304,7 @@ fun GalleryScreen(
             }
         },
         bottomBar = {
-            Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+            if (!finishedView) Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
                 Row(
                     Modifier.fillMaxWidth().navigationBarsPadding().height(64.dp).padding(horizontal = 4.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
@@ -282,6 +321,12 @@ fun GalleryScreen(
                                 tint = if (ui.filter.isActive) FilterGreen else Color.White,
                             )
                             BarAction(Icons.Outlined.CheckBox, "Select", onClick = { ui.selecting = true }, enabled = list.isNotEmpty())
+                            if (!session.isFinished) {
+                                BarAction(
+                                    Icons.AutoMirrored.Outlined.DriveFileMove, "Move keepers",
+                                    onClick = { startMoveKeepers() }, enabled = active.any { !it.isCulled },
+                                )
+                            }
                         }
                         !ui.selecting && inBin -> {
                             BarAction(Icons.Outlined.CheckBox, "Select", onClick = { ui.selecting = true }, enabled = list.isNotEmpty())
@@ -303,10 +348,15 @@ fun GalleryScreen(
                                 enabled = selectedPhotos.size == 2,
                             )
                             BarAction(Icons.Outlined.Delete, "Bin", onClick = {
-                                val before = repo.moveToBin(sid, ui.selected)
+                                val binnable = selectedPhotos.filter { !it.isCulled }.map { it.id }
+                                val kept = selectedPhotos.size - binnable.size
+                                val before = repo.moveToBin(sid, binnable)
                                 ui.exitSelection()
-                                undoable("Moved ${before.size} to bin", before)
-                            }, enabled = any)
+                                undoable(
+                                    "Moved ${before.size} to bin" + if (kept > 0) " ($kept culled photos kept)" else "",
+                                    before,
+                                )
+                            }, enabled = selectedPhotos.any { !it.isCulled })
                         }
                         else -> {
                             BarAction(Icons.Outlined.SelectAll, if (allSelected) "None" else "All", onClick = {
@@ -328,7 +378,30 @@ fun GalleryScreen(
             }
         },
     ) { pad ->
-        Box(Modifier.fillMaxSize().padding(pad)) {
+        if (finishedView) {
+            FinishedSummary(
+                session = session,
+                modifier = Modifier.padding(pad),
+                onViewCulled = {
+                    ui.filter = RatingFilter(culled = CulledMode.ONLY)
+                    ui.tab = 0
+                    ui.showFinishedGrid = true
+                },
+                onViewAll = {
+                    ui.filter = RatingFilter()
+                    ui.tab = 0
+                    ui.showFinishedGrid = true
+                },
+            )
+            return@Scaffold
+        }
+        Column(Modifier.fillMaxSize().padding(pad)) {
+          if (session.allProcessed && !session.isFinished && ui.finishSuggested && !suggestFinish) {
+              Banner("All photos processed", "Finish") { repo.finish(sid); ui.showFinishedGrid = false }
+          } else if (session.isFinished) {
+              Banner("Session finished", "Show summary") { ui.showFinishedGrid = false }
+          }
+          Box(Modifier.fillMaxSize()) {
             if (session.photos.isEmpty()) {
                 Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("No photos yet", color = Color.Gray, fontSize = 18.sp)
@@ -370,6 +443,80 @@ fun GalleryScreen(
                     ) { commitName() },
                 )
             }
+          }
+        }
+    }
+
+    if (suggestFinish) {
+        FinishSuggestDialog(
+            onDismiss = { suggestFinish = false },
+            onFinish = { suggestFinish = false; repo.finish(sid); ui.showFinishedGrid = false },
+        )
+    }
+    if (endDialog) {
+        EndSessionDialog(session, onDismiss = { endDialog = false }) { deleteBin ->
+            endDialog = false
+            scope.launch {
+                if (deleteBin) {
+                    val binPhotos = session.photos.filter { it.inBin }
+                    repo.metadata.forget(binPhotos.flatMap { it.allPaths })
+                    val r = FileOps.delete(context, binPhotos)
+                    repo.removeDeleted(sid, r.done)
+                }
+                repo.finish(sid)
+                ui.exitSelection()
+                ui.showFinishedGrid = false
+            }
+        }
+    }
+    if (chooseCulledFolder) {
+        FolderBrowserDialog(
+            title = "Folder for culled photos",
+            initialDir = prefs.culledFolder ?: prefs.lastMoveDir,
+            confirmLabel = "Use this folder",
+            explanation = "Keepers will be moved here. It should hold only culled photos. You can change it later in Settings.",
+            onDismiss = { chooseCulledFolder = false },
+        ) { dir ->
+            prefs.updateCulledFolder(dir.path)
+            chooseCulledFolder = false
+            keepersDialog = true
+        }
+    }
+    if (keepersDialog) {
+        val folder = prefs.culledFolder
+        if (folder == null) {
+            keepersDialog = false
+        } else MoveKeepersDialog(
+            folder = folder,
+            initialThreshold = prefs.keepersThreshold,
+            countFor = { t -> active.count { !it.isCulled && it.rating >= t } },
+            onDismiss = { keepersDialog = false },
+            onChangeFolder = { keepersDialog = false; chooseCulledFolder = true },
+        ) { t ->
+            keepersDialog = false
+            prefs.updateKeepersThreshold(t)
+            val keepers = active.filter { !it.isCulled && it.rating >= t }
+            moveProgress = 0f
+            scope.launch {
+                val r = moveAndMarkCulled(context, sid, keepers, java.io.File(folder)) { moveProgress = it }
+                moveProgress = null
+                val failed = if (r.errors.isEmpty()) "" else " (${r.errors.size} failed: ${r.errors.first()})"
+                snackbar.showSnackbar("Moved ${r.done.size} photos to ${FileOps.displayPath(folder)}$failed")
+            }
+            scope.launch {
+                // Offer to bin what is left below the threshold once the move has finished.
+                while (moveProgress != null) kotlinx.coroutines.delay(100)
+                val rest = repo.session(sid)?.photos?.filter { !it.inBin && !it.isCulled && it.rating < t }?.map { it.id }
+                if (!rest.isNullOrEmpty()) binRest = rest
+            }
+        }
+    }
+    moveProgress?.let { ProgressDialog("Moving keepers…", it) }
+    binRest?.let { ids ->
+        BinRestDialog(ids.size, onDismiss = { binRest = null }) {
+            binRest = null
+            val before = repo.moveToBin(sid, ids)
+            undoable("Moved ${before.size} to bin", before)
         }
     }
 
@@ -408,7 +555,7 @@ fun GalleryScreen(
                     scope.launch {
                         repo.metadata.forget(photos.flatMap { it.allPaths })
                         val r = FileOps.delete(context, photos)
-                        repo.removePhotos(sid, r.done)
+                        repo.removeDeleted(sid, r.done)
                         ui.exitSelection()
                         busy = false
                         snackbar.showSnackbar(
@@ -452,8 +599,18 @@ private fun PhotoGrid(list: List<Photo>, grid: LazyGridState, cols: Int, ui: Gal
                     },
             ) {
                 PhotoThumb(p, Modifier.fillMaxSize())
-                if (sel) Box(Modifier.fillMaxSize().border(3.dp, Accent))
-                LabelDot(p.label, 10.dp, Modifier.align(Alignment.TopStart).padding(6.dp))
+                when {
+                    sel -> Box(Modifier.fillMaxSize().border(3.dp, Accent))
+                    p.isCulled -> Box(Modifier.fillMaxSize().border(2.dp, CulledGreen))
+                }
+                Row(
+                    Modifier.align(Alignment.TopStart).padding(5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    if (p.isCulled) CulledBadge(18.dp)
+                    LabelDot(p.label, 10.dp)
+                }
                 if (p.hasRaw) RawBadge(Modifier.align(Alignment.TopEnd).padding(4.dp))
                 RatingBadge(p.rating, Modifier.align(Alignment.BottomEnd).padding(4.dp))
                 if (ui.selecting) SelectBox(sel, Modifier.align(Alignment.BottomStart).padding(6.dp))
@@ -563,6 +720,19 @@ private fun FilterSheet(filter: RatingFilter, count: Int, onChange: (RatingFilte
                 label = { Text("Unrated only") },
             )
             Spacer(Modifier.height(12.dp))
+            Text("Culled", style = MaterialTheme.typography.titleSmall)
+            Spacer(Modifier.height(8.dp))
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                CulledMode.entries.forEachIndexed { i, m ->
+                    SegmentedButton(
+                        selected = filter.culled == m,
+                        onClick = { onChange(filter.copy(culled = m)) },
+                        shape = SegmentedButtonDefaults.itemShape(index = i, count = CulledMode.entries.size),
+                        label = { Text(m.label) },
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
             Text("Colour label", style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -636,5 +806,18 @@ private fun NameEditor(value: TextFieldValue, onChange: (TextFieldValue) -> Unit
     LaunchedEffect(Unit) {
         focus.requestFocus()
         keyboard?.show()
+    }
+}
+
+@Composable
+private fun Banner(text: String, action: String, onAction: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().background(CulledGreen.copy(alpha = 0.18f)).padding(start = 16.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.Check, null, tint = CulledGreen, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(text, modifier = Modifier.weight(1f))
+        TextButton(onClick = onAction) { Text(action, color = CulledGreen) }
     }
 }

@@ -1,6 +1,7 @@
 package app.easyculling
 
 import android.os.Bundle
+import android.view.MotionEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -28,6 +29,21 @@ class MainActivity : ComponentActivity() {
                 AppRoot()
             }
         }
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) app.timer.onTouch()
+        return super.dispatchTouchEvent(ev)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        app.timer.onResume()
+    }
+
+    override fun onPause() {
+        app.timer.onPause()
+        super.onPause()
     }
 
     override fun onStop() {

@@ -34,7 +34,10 @@ object FileOps {
     private fun uriFor(context: Context, f: File): Uri =
         FileProvider.getUriForFile(context, context.packageName + ".files", f)
 
-    data class Result(val done: List<Long>, val errors: List<String>)
+    data class Result(val done: List<Long>, val errors: List<String>, val moved: Map<Long, Moved> = emptyMap())
+
+    /** New file locations of a moved photo. */
+    data class Moved(val path: String, val rawPath: String?)
 
     /** Moves the files of each photo (JPEG and its DNG together) into [dest]. */
     suspend fun move(context: Context, photos: List<Photo>, dest: File, progress: (Int) -> Unit): Result =
@@ -43,6 +46,7 @@ object FileOps {
             val done = ArrayList<Long>()
             val errors = ArrayList<String>()
             val scan = ArrayList<String>()
+            val moved = HashMap<Long, Moved>()
             photos.forEachIndexed { i, p ->
                 progress(i)
                 try {
@@ -52,18 +56,24 @@ object FileOps {
                         throw IOException("already in that folder")
                     }
                     val base = uniqueBase(dest, sources)
+                    val newPaths = HashMap<String, String>()
                     for (src in sources) {
                         val target = File(dest, base + "." + src.extension)
                         moveFile(src, target)
+                        newPaths[src.path] = target.path
                         scan += src.path; scan += target.path
                     }
+                    moved[p.id] = Moved(
+                        path = newPaths[p.path] ?: p.path,
+                        rawPath = p.rawPath?.let { newPaths[it] ?: it },
+                    )
                     done += p.id
                 } catch (t: Throwable) {
                     errors += "${p.name}: ${t.message}"
                 }
             }
             if (scan.isNotEmpty()) MediaScannerConnection.scanFile(context, scan.toTypedArray(), null, null)
-            Result(done, errors)
+            Result(done, errors, moved)
         }
 
     private fun uniqueBase(dest: File, sources: List<File>): String {
@@ -87,6 +97,29 @@ object FileOps {
         }
         target.setLastModified(mtime)
         if (!src.delete()) throw IOException("copied, but the original could not be removed")
+    }
+
+    /** Short display form of a folder path, e.g. "Pictures/Culled". */
+    fun displayPath(dir: String): String =
+        dir.removePrefix(android.os.Environment.getExternalStorageDirectory().path).trimStart('/').ifEmpty { "Phone storage" }
+
+    /**
+     * Opens [dir] in the phone's file manager: Samsung My Files first, then any app that can show a
+     * folder. Returns false when nothing could open it.
+     */
+    fun openFolder(context: Context, dir: String): Boolean {
+        val samsung = Intent("samsung.myfiles.intent.action.LAUNCH_MY_FILES")
+            .putExtra("samsung.myfiles.intent.extra.START_PATH", dir)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (runCatching { context.startActivity(samsung) }.isSuccess) return true
+        val rel = displayPath(dir).takeIf { it != "Phone storage" } ?: ""
+        val uri = android.provider.DocumentsContract.buildDocumentUri(
+            "com.android.externalstorage.documents", "primary:$rel",
+        )
+        val generic = Intent(Intent.ACTION_VIEW)
+            .setDataAndType(uri, android.provider.DocumentsContract.Document.MIME_TYPE_DIR)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        return runCatching { context.startActivity(generic) }.isSuccess
     }
 
     /** Permanently deletes the files of each photo. */

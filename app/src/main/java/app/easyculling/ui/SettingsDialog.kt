@@ -35,13 +35,19 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import app.easyculling.app
+import app.easyculling.data.FileOps
 import app.easyculling.data.Prefs
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 
 /** Full-screen settings, shown over the current screen so nothing underneath is lost. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsDialog(onDismiss: () -> Unit) {
     val prefs = LocalContext.current.app.prefs
+    var chooseFolder by remember { mutableStateOf(false) }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Scaffold(
             topBar = {
@@ -91,8 +97,33 @@ fun SettingsDialog(onDismiss: () -> Unit) {
                     label = { "$it" },
                     onSelect = prefs::updateGridColumns,
                 )
+
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider()
+                Section("Files")
+                Row(
+                    Modifier.fillMaxWidth().clickable { chooseFolder = true }.padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Culled folder", fontSize = 16.sp)
+                        Text(
+                            prefs.culledFolder?.let { FileOps.displayPath(it) } ?: "Not set — tap to choose",
+                            fontSize = 13.sp, color = Color.Gray,
+                        )
+                    }
+                }
             }
         }
+    }
+    if (chooseFolder) {
+        FolderBrowserDialog(
+            title = "Folder for culled photos",
+            initialDir = prefs.culledFolder ?: prefs.lastMoveDir,
+            confirmLabel = "Use this folder",
+            explanation = "Keepers are moved here by Move keepers, and it is pre-selected when moving photos.",
+            onDismiss = { chooseFolder = false },
+        ) { prefs.updateCulledFolder(it.path); chooseFolder = false }
     }
 }
 

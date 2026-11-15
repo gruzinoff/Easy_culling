@@ -22,6 +22,15 @@ class Prefs(context: Context) {
     var haptics by mutableStateOf(sp.getBoolean("haptics", true))
         private set
 
+    /** Default folder for culled photos (null until chosen). */
+    var culledFolder by mutableStateOf(sp.getString("culledFolder", null))
+        private set
+    /** The one-time "choose your culled folder" question was answered or skipped. */
+    var culledFolderAsked by mutableStateOf(sp.getBoolean("culledFolderAsked", false))
+        private set
+    var keepersThreshold by mutableIntStateOf(sp.getInt("keepersThreshold", 3))
+        private set
+
     // ---- remembered UI state ----
     var controlsVisible by mutableStateOf(sp.getBoolean("controlsVisible", true))
         private set
@@ -35,6 +44,13 @@ class Prefs(context: Context) {
     fun updateAutoAdvance(v: Boolean) { autoAdvance = v; sp.edit().putBoolean("autoAdvance", v).apply() }
     fun updateGridColumns(v: Int) { gridColumns = v; sp.edit().putInt("gridColumns", v).apply() }
     fun updateHaptics(v: Boolean) { haptics = v; sp.edit().putBoolean("haptics", v).apply() }
+    fun updateCulledFolder(v: String?) {
+        culledFolder = v
+        culledFolderAsked = true
+        sp.edit().putString("culledFolder", v).putBoolean("culledFolderAsked", true).apply()
+    }
+    fun markCulledFolderAsked() { culledFolderAsked = true; sp.edit().putBoolean("culledFolderAsked", true).apply() }
+    fun updateKeepersThreshold(v: Int) { keepersThreshold = v; sp.edit().putInt("keepersThreshold", v).apply() }
     fun updateControlsVisible(v: Boolean) { controlsVisible = v; sp.edit().putBoolean("controlsVisible", v).apply() }
     fun updateLastMoveDir(v: String) { lastMoveDir = v; sp.edit().putString("lastMoveDir", v).apply() }
 

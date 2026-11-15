@@ -47,7 +47,7 @@ class Repository(private val context: Context, private val scope: CoroutineScope
     // ---- sessions ----
 
     fun createSession(name: String): Session {
-        val s = Session(UUID.randomUUID().toString(), name, System.currentTimeMillis(), emptyList(), 1)
+        val s = Session(UUID.randomUUID().toString(), name, System.currentTimeMillis(), emptyList(), 1, tracksTime = true)
         _sessions.update { listOf(s) + it }
         markDirty(s.id)
         return s
@@ -64,24 +64,33 @@ class Repository(private val context: Context, private val scope: CoroutineScope
     }
 
     /** Adds photos (skipping ones already in the session) and picks up ratings already stored in the files. */
-    suspend fun addPhotos(id: String, items: List<MediaItem>, progress: (Int, Int) -> Unit = { _, _ -> }): Int {
+    suspend fun addPhotos(
+        id: String,
+        items: List<MediaItem>,
+        culledFolder: String? = null,
+        progress: (Int, Int) -> Unit = { _, _ -> },
+    ): Int {
+        val culledDir = culledFolder?.let { runCatching { File(it).canonicalPath }.getOrNull() }
         val existing = session(id)?.photos?.flatMapTo(HashSet()) { it.allPaths } ?: return 0
         val fresh = items.filter { it.path !in existing }
         val withMeta = withContext(Dispatchers.IO) {
             fresh.mapIndexed { i, item ->
                 if (i % 20 == 0) progress(i, fresh.size)
-                item to MetadataWriter.readExisting(item)
+                val dir = File(item.path).parentFile?.let { runCatching { it.canonicalPath }.getOrNull() }
+                Triple(item, MetadataWriter.readExisting(item), if (culledDir != null && dir == culledDir) culledFolder else null)
             }
         }
         mutate(id) { s ->
             var next = s.nextId
-            val added = withMeta.map { (m, v) ->
+            val added = withMeta.map { (m, v, culled) ->
                 Photo(
                     id = next++, path = m.path, rawPath = m.rawPath, name = m.name,
                     dateTaken = m.dateTaken, mediaId = m.mediaId, rating = v.rating, label = v.label,
+                    culledTo = culled,
                 )
             }
-            s.copy(photos = s.photos + added, nextId = next)
+            // Adding photos to a finished session makes it active again.
+            s.copy(photos = s.photos + added, nextId = next, finishedAt = if (added.isEmpty()) s.finishedAt else 0)
         }
         return fresh.size
     }
@@ -105,7 +114,10 @@ class Repository(private val context: Context, private val scope: CoroutineScope
             it.copy(inBin = false, binnedAt = 0, rating = rating ?: it.rating)
         }
 
-    /** Puts photos back exactly as they were (used by Undo). */
+    /**
+     * Puts rating, label and bin state back as they were (used by Undo/Redo).
+     * File locations are kept as they are now, so an undo never points at a path a photo has left.
+     */
     fun revert(id: String, previous: List<Photo>) {
         val byId = previous.associateBy { it.id }
         var metaChanged = emptyList<Photo>()
@@ -113,8 +125,9 @@ class Repository(private val context: Context, private val scope: CoroutineScope
             val changed = ArrayList<Photo>()
             val photos = s.photos.map { p ->
                 val old = byId[p.id] ?: return@map p
-                if (old.rating != p.rating || old.label != p.label) changed += old
-                old
+                val restored = p.copy(rating = old.rating, label = old.label, inBin = old.inBin, binnedAt = old.binnedAt)
+                if (old.rating != p.rating || old.label != p.label) changed += restored
+                restored
             }
             metaChanged = changed
             s.copy(photos = photos)
@@ -122,10 +135,34 @@ class Repository(private val context: Context, private val scope: CoroutineScope
         metaChanged.forEach(metadata::enqueue)
     }
 
-    /** Removes photos from the session (after moving/deleting their files). */
-    fun removePhotos(id: String, ids: Collection<Long>) {
+    /** Removes photos from the session after their files were permanently deleted. */
+    fun removeDeleted(id: String, ids: Collection<Long>) {
         val set = ids.toHashSet()
-        mutate(id) { s -> s.copy(photos = s.photos.filter { it.id !in set }) }
+        mutate(id) { s ->
+            val kept = s.photos.filter { it.id !in set }
+            s.copy(photos = kept, removedCount = s.removedCount + (s.photos.size - kept.size))
+        }
+    }
+
+    /** Records that photos were moved: new file locations, and marks them culled. */
+    fun markCulled(id: String, moved: Map<Long, FileOps.Moved>, folder: String) {
+        mutate(id) { s ->
+            s.copy(photos = s.photos.map { p ->
+                val m = moved[p.id] ?: return@map p
+                p.copy(path = m.path, rawPath = m.rawPath, culledTo = folder, mediaId = 0)
+            })
+        }
+    }
+
+    fun finish(id: String) = mutate(id) { it.copy(finishedAt = System.currentTimeMillis()) }
+
+    fun reopen(id: String) = mutate(id) { it.copy(finishedAt = 0) }
+
+    /** Adds active culling time; ignored for finished sessions and ones that don't track time. */
+    fun addActiveTime(id: String, ms: Long) {
+        val s = session(id) ?: return
+        if (ms <= 0 || !s.tracksTime || s.isFinished) return
+        mutate(id) { it.copy(activeMillis = it.activeMillis + ms) }
     }
 
     private fun editPhotos(id: String, ids: Collection<Long>, writeMeta: Boolean, f: (Photo) -> Photo): List<Photo> {
@@ -181,6 +218,8 @@ class Repository(private val context: Context, private val scope: CoroutineScope
     private fun encode(s: Session) = JSONObject().apply {
         put("id", s.id); put("name", s.name); put("createdAt", s.createdAt)
         put("nextId", s.nextId); put("sortByTime", s.sortByTime)
+        put("removed", s.removedCount); put("finishedAt", s.finishedAt)
+        put("activeMillis", s.activeMillis); put("tracksTime", s.tracksTime)
         put("photos", JSONArray().apply {
             s.photos.forEach { p ->
                 put(JSONObject().apply {
@@ -188,6 +227,7 @@ class Repository(private val context: Context, private val scope: CoroutineScope
                     put("name", p.name); put("date", p.dateTaken); put("media", p.mediaId)
                     put("rating", p.rating); put("label", p.label)
                     put("bin", p.inBin); put("binnedAt", p.binnedAt)
+                    p.culledTo?.let { put("culledTo", it) }
                 })
             }
         })
@@ -203,12 +243,15 @@ class Repository(private val context: Context, private val scope: CoroutineScope
                 name = p.getString("name"), dateTaken = p.optLong("date"), mediaId = p.optLong("media"),
                 rating = p.optInt("rating"), label = p.optInt("label"),
                 inBin = p.optBoolean("bin"), binnedAt = p.optLong("binnedAt"),
+                culledTo = if (p.has("culledTo")) p.getString("culledTo") else null,
             )
         }
         return Session(
             id = o.getString("id"), name = o.getString("name"), createdAt = o.getLong("createdAt"),
             photos = photos, nextId = o.optLong("nextId", (photos.maxOfOrNull { it.id } ?: 0) + 1),
             sortByTime = o.optBoolean("sortByTime"),
+            removedCount = o.optInt("removed"), finishedAt = o.optLong("finishedAt"),
+            activeMillis = o.optLong("activeMillis"), tracksTime = o.optBoolean("tracksTime"),
         )
     }
 }

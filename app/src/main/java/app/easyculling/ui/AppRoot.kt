@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import app.easyculling.app
 import app.easyculling.data.RatingFilter
 
 sealed interface Screen {
@@ -53,6 +55,10 @@ class GalleryUi {
     var selected by mutableStateOf(emptySet<Long>())
     var returnTo by mutableStateOf<Long?>(null)
     var message by mutableStateOf<String?>(null)
+    /** Finished session: show the grid instead of the summary. */
+    var showFinishedGrid by mutableStateOf(false)
+    /** The "all processed, finish?" dialog was already shown this time. */
+    var finishSuggested by mutableStateOf(false)
 
     fun exitSelection() { selecting = false; selected = emptySet() }
 }
@@ -103,7 +109,26 @@ fun AppRoot() {
         return
     }
 
+    val prefs = context.app.prefs
+    if (!prefs.culledFolderAsked) {
+        // One-time question (first start, or first start after the update that added it).
+        CulledFolderSetup(onDone = {})
+        return
+    }
+
     val nav = remember { Nav() }
+    // Tell the culling-time tracker which session's screen is showing.
+    val top = nav.top
+    SideEffect {
+        context.app.timer.sessionId = when (top) {
+            is Screen.Gallery -> top.sid
+            is Screen.Picker -> top.sid
+            is Screen.Viewer -> top.sid
+            is Screen.Compare -> top.sid
+            is Screen.MoveTarget -> top.sid
+            Screen.Sessions -> null
+        }
+    }
     BackHandler(enabled = nav.stack.size > 1 && nav.top !is Screen.Viewer && nav.top !is Screen.Gallery) { nav.pop() }
 
     when (val s = nav.top) {

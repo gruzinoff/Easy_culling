@@ -224,6 +224,7 @@ fun ViewerScreen(
                     )
                     val raw = if (current?.hasRaw == true) " · RAW" else ""
                     Text("${pager.currentPage + 1} / ${ids.size}$raw${if (fromBin) " · in bin" else ""}", color = Color.LightGray, fontSize = 12.sp)
+                    current?.culledTo?.let { CulledChip(it, Modifier.padding(top = 3.dp)) }
                 }
                 IconButton(onClick = { showInfo = true }) { Icon(Icons.Outlined.Info, "Info", tint = Color.White) }
                 IconButton(onClick = { showSettings = true }) { Icon(Icons.Outlined.Settings, "Settings", tint = Color.White) }
@@ -236,10 +237,12 @@ fun ViewerScreen(
                         record(repo.restore(sid, listOf(p.id)))
                     }) { Icon(Icons.Outlined.Restore, "Restore", tint = Color.White) }
                 } else {
-                    IconButton(onClick = {
+                    // Culled photos (keepers already moved out) can't be sent to the bin.
+                    val canBin = current?.isCulled == false
+                    IconButton(enabled = canBin, onClick = {
                         val p = current ?: return@IconButton
                         record(repo.moveToBin(sid, listOf(p.id)))
-                    }) { Icon(Icons.Outlined.Delete, "Move to bin", tint = Color.White) }
+                    }) { Icon(Icons.Outlined.Delete, "Move to bin", tint = if (canBin) Color.White else Color.Gray) }
                 }
             }
           }

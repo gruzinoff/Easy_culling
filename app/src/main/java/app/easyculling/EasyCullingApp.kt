@@ -3,6 +3,7 @@ package app.easyculling
 import android.app.Application
 import android.content.Context
 import android.util.Size
+import app.easyculling.data.ActiveTimer
 import app.easyculling.data.Prefs
 import app.easyculling.data.Repository
 import app.easyculling.data.mediaUri
@@ -27,11 +28,14 @@ class EasyCullingApp : Application(), SingletonImageLoader.Factory {
         private set
     lateinit var prefs: Prefs
         private set
+    lateinit var timer: ActiveTimer
+        private set
 
     override fun onCreate() {
         super.onCreate()
         repo = Repository(this, scope)
         prefs = Prefs(this)
+        timer = ActiveTimer(repo)
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader =
@@ -53,13 +57,23 @@ private class ThumbKeyer : Keyer<Thumb> {
 
 private class ThumbFetcher(private val context: Context, private val data: Thumb) : Fetcher {
     override suspend fun fetch(): FetchResult {
-        val bmp = if (data.mediaId > 0) {
-            runCatching { context.contentResolver.loadThumbnail(mediaUri(data.mediaId), Size(512, 512), null) }
+        val id = data.mediaId.takeIf { it > 0 } ?: lookupMediaId(data.path)
+        val bmp = if (id > 0) {
+            runCatching { context.contentResolver.loadThumbnail(mediaUri(id), Size(512, 512), null) }
                 .getOrNull()
         } else null
         val bitmap = bmp ?: decodeSampled(data.path)
         return ImageFetchResult(image = bitmap.asImage(), isSampled = true, dataSource = DataSource.DISK)
     }
+
+    /** Finds the media-store id of a file (e.g. after it was moved), or 0. */
+    private fun lookupMediaId(path: String): Long = runCatching {
+        val uri = android.provider.MediaStore.Images.Media.getContentUri(android.provider.MediaStore.VOLUME_EXTERNAL)
+        context.contentResolver.query(
+            uri, arrayOf(android.provider.MediaStore.Images.Media._ID),
+            "${android.provider.MediaStore.Images.Media.DATA} = ?", arrayOf(path), null,
+        )?.use { c -> if (c.moveToFirst()) c.getLong(0) else 0L } ?: 0L
+    }.getOrDefault(0L)
 
     private fun decodeSampled(path: String): android.graphics.Bitmap {
         val src = android.graphics.ImageDecoder.createSource(java.io.File(path))

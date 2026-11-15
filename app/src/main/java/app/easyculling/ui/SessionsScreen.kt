@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Settings
@@ -139,11 +140,17 @@ private fun SessionRow(s: Session, onClick: () -> Unit, onRename: () -> Unit, on
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(s.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            val rated = active.count { it.rating > 0 }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (s.isFinished) {
+                    Icon(Icons.Filled.CheckCircle, "Finished", tint = CulledGreen, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                }
+                Text(s.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
             Text(
-                "${active.size} photos · rated $rated · bin ${s.photos.size - active.size}",
-                style = MaterialTheme.typography.bodySmall, color = Color.Gray,
+                sessionStatsLine(s),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (s.isFinished) CulledGreen else Color.Gray,
             )
             Text(
                 SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(s.createdAt)),

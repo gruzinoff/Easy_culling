@@ -124,7 +124,7 @@ fun PickerScreen(sid: String, onDone: () -> Unit) {
                             val all = buckets.orEmpty().flatMap { it.items }.filter { it.path in selected }
                             adding = true
                             scope.launch {
-                                repo.addPhotos(sid, all) { i, n -> progress = if (n == 0) 1f else i.toFloat() / n }
+                                repo.addPhotos(sid, all, context.app.prefs.culledFolder) { i, n -> progress = if (n == 0) 1f else i.toFloat() / n }
                                 adding = false
                                 onDone()
                             }
