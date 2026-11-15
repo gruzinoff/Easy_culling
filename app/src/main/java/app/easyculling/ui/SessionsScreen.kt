@@ -58,7 +58,6 @@ import java.util.Locale
 fun SessionsScreen(onOpen: (String) -> Unit, onCreated: (String) -> Unit) {
     val repo = LocalContext.current.app.repo
     val sessions by repo.sessions.collectAsState()
-    var creating by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<Session?>(null) }
     var deleting by remember { mutableStateOf<Session?>(null) }
@@ -74,7 +73,10 @@ fun SessionsScreen(onOpen: (String) -> Unit, onCreated: (String) -> Unit) {
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { creating = true },
+                onClick = {
+                    val name = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+                    onCreated(repo.createSession(name).id)
+                },
                 icon = { Icon(Icons.Filled.Add, null) },
                 text = { Text("New session") },
             )
@@ -103,13 +105,6 @@ fun SessionsScreen(onOpen: (String) -> Unit, onCreated: (String) -> Unit) {
     }
 
     if (showSettings) SettingsDialog { showSettings = false }
-    if (creating) {
-        val default = "Session " + SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault()).format(Date())
-        NameDialog(title = "New session", initial = default, confirm = "Create", onDismiss = { creating = false }) {
-            creating = false
-            onCreated(repo.createSession(it).id)
-        }
-    }
     renaming?.let { s ->
         NameDialog(title = "Rename session", initial = s.name, confirm = "Rename", onDismiss = { renaming = null }) {
             repo.renameSession(s.id, it); renaming = null

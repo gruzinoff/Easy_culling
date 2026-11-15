@@ -2,6 +2,21 @@ package app.easyculling.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Button
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -127,7 +142,17 @@ fun GalleryScreen(
     var menu by remember { mutableStateOf(false) }
     var showFilter by remember { mutableStateOf(false) }
     var showBulkRate by remember { mutableStateOf(false) }
-    var renaming by remember { mutableStateOf(false) }
+    var editingName by remember { mutableStateOf(false) }
+    var nameField by remember { mutableStateOf(TextFieldValue("")) }
+    fun startEditName() {
+        nameField = TextFieldValue(session.name, TextRange(0, session.name.length))
+        editingName = true
+    }
+    fun commitName() {
+        val n = nameField.text.trim()
+        if (n.isNotEmpty() && n != session.name) repo.renameSession(sid, n)
+        editingName = false
+    }
     var showSettings by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf<List<Photo>?>(null) }
     var busy by remember { mutableStateOf(false) }
@@ -138,6 +163,7 @@ fun GalleryScreen(
     BackHandler {
         if (ui.selecting) ui.exitSelection() else onBack()
     }
+    BackHandler(enabled = editingName) { editingName = false }
 
     // Keep the selection limited to what is currently visible (filter/tab changes).
     LaunchedEffect(list) {
@@ -193,7 +219,14 @@ fun GalleryScreen(
                             Text("${ui.selected.size} selected")
                         } else {
                             Column {
-                                Text(session.name, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 18.sp)
+                                if (editingName) {
+                                    NameEditor(nameField, onChange = { nameField = it }, onDone = ::commitName)
+                                } else {
+                                    Text(
+                                        session.name, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 18.sp,
+                                        modifier = Modifier.clickable { startEditName() },
+                                    )
+                                }
                                 val rated = active.count { it.rating > 0 }
                                 val f = if (ui.filter.isActive && !inBin) " · showing ${shown.size}" else ""
                                 Text(
@@ -212,7 +245,6 @@ fun GalleryScreen(
                                     text = { Text(if (session.sortByTime) "Sort by file name" else "Sort by capture time") },
                                     onClick = { menu = false; repo.setSortByTime(sid, !session.sortByTime) },
                                 )
-                                DropdownMenuItem(text = { Text("Rename session") }, onClick = { menu = false; renaming = true })
                                 DropdownMenuItem(text = { Text("Settings") }, onClick = { menu = false; showSettings = true })
                             }
                         }
@@ -297,11 +329,21 @@ fun GalleryScreen(
         },
     ) { pad ->
         Box(Modifier.fillMaxSize().padding(pad)) {
-            if (list.isEmpty()) {
+            if (session.photos.isEmpty()) {
+                Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("No photos yet", color = Color.Gray, fontSize = 18.sp)
+                    Spacer(Modifier.height(16.dp))
+                    Button(onClick = onAddPhotos) {
+                        Icon(Icons.Filled.Add, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Add photos")
+                    }
+                }
+            } else if (list.isEmpty()) {
                 Text(
                     when {
                         inBin -> "The bin is empty"
-                        active.isEmpty() -> "No photos yet. Use ⋮ → Add photos."
+                        active.isEmpty() -> "All photos are in the bin"
                         else -> "No photos match the filter"
                     },
                     color = Color.Gray,
@@ -317,6 +359,15 @@ fun GalleryScreen(
             )
             FastScroller(grid = grid, list = list, cols = cols, modifier = Modifier.align(Alignment.CenterEnd))
             if (busy) CircularProgressIndicator(Modifier.align(Alignment.Center))
+            if (editingName) {
+                // Tapping anywhere outside the name field saves the new name.
+                Box(
+                    Modifier.fillMaxSize().clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) { commitName() },
+                )
+            }
         }
     }
 
@@ -340,11 +391,6 @@ fun GalleryScreen(
         )
     }
     if (showSettings) SettingsDialog { showSettings = false }
-    if (renaming) {
-        NameDialog("Rename session", session.name, "Rename", onDismiss = { renaming = false }) {
-            repo.renameSession(sid, it); renaming = false
-        }
-    }
     confirmDelete?.let { photos ->
         val files = photos.sumOf { it.allPaths.size }
         AlertDialog(
@@ -562,4 +608,31 @@ private fun BulkRateDialog(count: Int, onDismiss: () -> Unit, onRate: (Int) -> U
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
+}
+
+/** Session name edited in place in the top bar: whole name pre-selected, keyboard Done saves. */
+@Composable
+private fun NameEditor(value: TextFieldValue, onChange: (TextFieldValue) -> Unit, onDone: () -> Unit) {
+    val focus = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    BasicTextField(
+        value = value,
+        onValueChange = onChange,
+        singleLine = true,
+        textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+        cursorBrush = SolidColor(Accent),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { onDone() }),
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRequester(focus)
+            .drawBehind {
+                val y = size.height + 2.dp.toPx()
+                drawLine(Accent, Offset(0f, y), Offset(size.width, y), strokeWidth = 1.5.dp.toPx())
+            },
+    )
+    LaunchedEffect(Unit) {
+        focus.requestFocus()
+        keyboard?.show()
+    }
 }
