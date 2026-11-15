@@ -223,8 +223,8 @@ goes to the background, so a crash loses at most a minute.
 ## 9. New session without the naming step; rename by tapping the name
 
 **Behaviour**
-- **New session** creates the session immediately with an automatic name, for example
-  **"14 Nov 2026, 18:36"** (date and time of creation). The name dialog is removed. It goes
+- **New session** creates the session immediately with an automatic name: the creation date and
+  time in ISO format, **`2026-11-15 04:20:33`** (`yyyy-MM-dd HH:mm:ss`, phone's local time). The name dialog is removed. It goes
   straight to Add photos, and then to the gallery.
 - In the gallery, **tapping the session name** in the top bar turns it into an editable text
   field in place, with the keyboard open and the whole name selected so typing replaces it. No pen
