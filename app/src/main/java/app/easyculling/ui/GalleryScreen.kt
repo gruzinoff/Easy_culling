@@ -350,7 +350,9 @@ fun GalleryScreen(
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
-            PhotoGrid(
+            // Only when there is something to show: an empty grid would sit on top of the
+            // "Add photos" button and swallow its taps.
+            if (list.isNotEmpty()) PhotoGrid(
                 list = list,
                 grid = grid,
                 cols = cols,

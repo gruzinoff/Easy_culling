@@ -109,7 +109,7 @@ fun AppRoot() {
     when (val s = nav.top) {
         Screen.Sessions -> SessionsScreen(
             onOpen = { nav.push(Screen.Gallery(it)) },
-            onCreated = { nav.push(Screen.Gallery(it)); nav.push(Screen.Picker(it, thenOpenGallery = false)) },
+            onCreated = { nav.push(Screen.Gallery(it)) },
         )
         is Screen.Picker -> PickerScreen(
             sid = s.sid,
