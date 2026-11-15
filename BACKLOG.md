@@ -214,7 +214,7 @@ goes to the background, so a crash loses at most a minute.
 
 ---
 
-## 9. Add photos: sort by date (newest first by default)
+## 9. Add photos: sort by date (newest first by default) (DONE: build 13)
 
 **Behaviour**
 - In the Add photos browser, inside a folder, photos are sorted by **capture date**.
@@ -228,7 +228,7 @@ goes to the background, so a crash loses at most a minute.
 
 ---
 
-## 10. Grid size by pinch gesture (remove it from Settings)
+## 10. Grid size by pinch gesture (remove it from Settings) (DONE: build 13)
 
 **Behaviour**
 - In the **gallery** (Gallery and Bin tabs) and in the **Add photos** browser, a two-finger pinch
@@ -248,7 +248,7 @@ goes to the background, so a crash loses at most a minute.
 
 ---
 
-## 11. Exclude photos from the session
+## 11. Exclude photos from the session (DONE: build 13)
 
 **Behaviour**
 - In the gallery's selection mode (Gallery and Bin tabs), a new bottom-bar action
@@ -262,7 +262,7 @@ goes to the background, so a crash loses at most a minute.
 
 ---
 
-## 12. Session name shown in a pale outlined frame with a "Session" label
+## 12. Session name shown in a pale outlined frame with a "Session" label (DONE: build 13)
 
 **Reference.** The Material "outlined text field" look: a thin rounded frame with a small label
 sitting in a gap of the top border, at the top-left. Here it is used as a *display* frame, not
@@ -283,7 +283,7 @@ as an input box.
 
 ---
 
-## 13. Move keepers dialog: range highlight and destination folder line
+## 13. Move keepers dialog: range highlight and destination folder line (DONE: build 13)
 
 **Behaviour**
 - In the Move keepers dialog, choosing a threshold highlights **every button from that rating up
@@ -309,7 +309,7 @@ as an input box.
 
 ---
 
-## 14. Filter: switching to "<" resets "Only culled" to "Show"
+## 14. Filter: switching to "<" resets "Only culled" to "Show" (DONE: build 13)
 
 **Problem.** Rating filter "< 3★" combined with Culled "Only culled" almost always shows nothing
 (keepers are rated high), and it isn't obvious why the gallery is empty.
@@ -324,7 +324,7 @@ as an input box.
 
 ---
 
-## 15. Empty gallery because of the filter: say why, offer Clear filter
+## 15. Empty gallery because of the filter: say why, offer Clear filter (DONE: build 13)
 
 **Behaviour**
 - When the Gallery tab shows no photos **only because of the filter**, the centre of the screen
@@ -343,7 +343,7 @@ as an input box.
 
 ---
 
-## 16. Gallery tab shows how many photos are displayed
+## 16. Gallery tab shows how many photos are displayed (DONE: build 13)
 
 **Behaviour**
 - The **Gallery** tab label shows the number of photos **currently displayed**, after the filter:
@@ -353,7 +353,7 @@ as an input box.
 
 ---
 
-## 17. Finished summary: date and time for start and finish
+## 17. Finished summary: date and time for start and finish (DONE: build 13)
 
 **Behaviour**
 - Under the green tick and "Session finished", **no date** is shown any more.
@@ -413,9 +413,8 @@ Keywords can be added later if needed.
 
 ## Ideas considered and not pursued
 
-- **(Superseded: FTP receiving was built afterwards. Photos from the camera arrive via the
-  camera's FTP Transfer function. Copying Sony's private protocol stays rejected.)**
-  **Receiving photos from the Sony a6700 directly in the app.** Copying Sony's own wireless
+- **Receiving photos from the Sony a6700 directly in the app.** An FTP receiver was built
+  (build 12) and then removed: the a6700 turned out to have no FTP Transfer function. Copying Sony's own wireless
   transfer (what Creators' App does) was rejected: it is a private, undocumented protocol and
   could break with any camera firmware update. Photos keep coming in via Sony Creators' App.
   Two alternatives were noted in case this comes back:

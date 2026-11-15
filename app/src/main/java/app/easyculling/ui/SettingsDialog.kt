@@ -89,18 +89,6 @@ fun SettingsDialog(onDismiss: () -> Unit) {
 
                 Spacer(Modifier.height(16.dp))
                 HorizontalDivider()
-                Section("Gallery")
-                ChoiceSetting(
-                    title = "Grid columns",
-                    subtitle = "Photos per row with the phone upright (twice as many when horizontal)",
-                    choices = Prefs.GRID_CHOICES,
-                    selected = prefs.gridColumns,
-                    label = { "$it" },
-                    onSelect = prefs::updateGridColumns,
-                )
-
-                Spacer(Modifier.height(16.dp))
-                HorizontalDivider()
                 Section("Files")
                 Row(
                     Modifier.fillMaxWidth().clickable { chooseFolder = true }.padding(vertical = 12.dp),

@@ -2,6 +2,8 @@ package app.easyculling.ui
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -119,27 +121,57 @@ fun MoveKeepersDialog(
             Column {
                 Text("Photos rated at least:")
                 Spacer(Modifier.height(8.dp))
-                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                    (1..5).forEach { v ->
-                        SegmentedButton(
-                            selected = v == threshold,
-                            onClick = { threshold = v },
-                            shape = SegmentedButtonDefaults.itemShape(index = v - 1, count = 5),
-                            label = { Text("$v★") },
-                        )
-                    }
-                }
+                ThresholdRange(threshold) { threshold = it }
                 Spacer(Modifier.height(12.dp))
                 Text(
                     if (n == 0) "No photos rated ≥ $threshold★ are waiting to be moved."
-                    else "Move $n photos rated ≥ $threshold★ to ${FileOps.displayPath(folder)}?",
+                    else "Move $n photos rated ≥ $threshold★?",
                 )
-                TextButton(onClick = onChangeFolder, modifier = Modifier.padding(top = 4.dp)) { Text("Change folder") }
+                Spacer(Modifier.height(14.dp))
+                Text("Your files will be saved in the folder:", color = Color.Gray, fontSize = 13.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        FileOps.displayPath(folder), fontSize = 15.sp, fontWeight = FontWeight.Medium,
+                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    androidx.compose.material3.IconButton(onClick = onChangeFolder) {
+                        Icon(Icons.Outlined.FolderOpen, "Change folder", tint = Accent)
+                    }
+                }
             }
         },
         confirmButton = { TextButton(enabled = n > 0, onClick = { onConfirm(threshold) }) { Text("Move") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
+}
+
+/** 1★…5★ buttons; the chosen rating and everything above it is green (no tick). */
+@Composable
+private fun ThresholdRange(threshold: Int, onSelect: (Int) -> Unit) {
+    val shape = RoundedCornerShape(24.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(44.dp)
+            .clip(shape)
+            .border(1.dp, Color.Gray, shape),
+    ) {
+        (1..5).forEach { v ->
+            val on = v >= threshold
+            Box(
+                Modifier
+                    .weight(1f)
+                    .fillMaxSize()
+                    .background(if (on) CulledGreen else Color.Transparent)
+                    .clickable { onSelect(v) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("$v★", color = if (on) Color.Black else Color.White, fontWeight = FontWeight.Medium)
+            }
+            if (v < 5) Box(Modifier.width(1.dp).fillMaxSize().background(if (on) Color.Black.copy(alpha = 0.25f) else Color.Gray))
+        }
+    }
 }
 
 @Composable
@@ -211,7 +243,7 @@ fun EndSessionDialog(session: Session, onDismiss: () -> Unit, onConfirm: (delete
     )
 }
 
-private val dateFormat get() = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
+private val dateTimeFormat get() = SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault())
 
 /** Replaces the grid once a session is finished. */
 @Composable
@@ -231,7 +263,6 @@ fun FinishedSummary(session: Session, onViewCulled: () -> Unit, onViewAll: () ->
         Icon(Icons.Filled.CheckCircle, null, tint = CulledGreen, modifier = Modifier.size(96.dp))
         Spacer(Modifier.height(12.dp))
         Text("Session finished", fontSize = 26.sp, fontWeight = FontWeight.Bold)
-        Text(dateFormat.format(Date(session.finishedAt)), color = Color.Gray)
         Spacer(Modifier.height(28.dp))
 
         StatRow("Processed", "${session.processedCount} photos", bold = true)
@@ -255,7 +286,8 @@ fun FinishedSummary(session: Session, onViewCulled: () -> Unit, onViewAll: () ->
         }
         if (binCount > 0) StatRow("In bin", "$binCount")
         StatRow("Culling time", if (session.tracksTime) formatDuration(session.activeMillis) else "—")
-        StatRow("Started", dateFormat.format(Date(session.createdAt)))
+        StatRow("Started", dateTimeFormat.format(Date(session.createdAt)))
+        StatRow("Finished", dateTimeFormat.format(Date(session.finishedAt)))
 
         Spacer(Modifier.height(28.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

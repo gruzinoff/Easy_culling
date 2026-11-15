@@ -145,6 +145,29 @@ class Repository(private val context: Context, private val scope: CoroutineScope
         }
     }
 
+    /**
+     * Takes photos out of the session without touching their files (they don't count in any stats).
+     * Returns them so the action can be undone with [reinclude].
+     */
+    fun exclude(id: String, ids: Collection<Long>): List<Photo> {
+        val set = ids.toHashSet()
+        var removed = emptyList<Photo>()
+        mutate(id) { s ->
+            removed = s.photos.filter { it.id in set }
+            s.copy(photos = s.photos.filter { it.id !in set })
+        }
+        AppLog.i("Excluded ${removed.size} photos from session (files untouched)")
+        return removed
+    }
+
+    /** Undo of [exclude]: puts the photos back as they were. */
+    fun reinclude(id: String, photos: List<Photo>) {
+        mutate(id) { s ->
+            val present = s.photos.mapTo(HashSet()) { it.id }
+            s.copy(photos = s.photos + photos.filter { it.id !in present })
+        }
+    }
+
     /** Records that photos were moved: new file locations, and marks them culled. */
     fun markCulled(id: String, moved: Map<Long, FileOps.Moved>, folder: String) {
         mutate(id) { s ->

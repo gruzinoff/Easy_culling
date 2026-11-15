@@ -56,6 +56,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Share
@@ -171,10 +172,12 @@ fun GalleryScreen(
         if (prefs.culledFolder == null) chooseCulledFolder = true else keepersDialog = true
     }
     var confirmDelete by remember { mutableStateOf<List<Photo>?>(null) }
+    var confirmExclude by remember { mutableStateOf<List<Long>?>(null) }
     var busy by remember { mutableStateOf(false) }
 
     val landscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
-    val cols = context.app.prefs.gridColumns * if (landscape) 2 else 1
+    val factor = if (landscape) 2 else 1
+    val cols = context.app.prefs.gridColumns * factor
 
     BackHandler {
         if (ui.selecting) ui.exitSelection() else onBack()
@@ -231,6 +234,7 @@ fun GalleryScreen(
         topBar = {
             Column {
                 TopAppBar(
+                    expandedHeight = if (ui.selecting) 64.dp else 84.dp,
                     navigationIcon = {
                         if (ui.selecting) {
                             IconButton(onClick = { ui.exitSelection() }) { Icon(Icons.Filled.Close, "Cancel selection") }
@@ -243,21 +247,24 @@ fun GalleryScreen(
                             Text("${ui.selected.size} selected")
                         } else {
                             Column {
-                                if (editingName) {
-                                    NameEditor(nameField, onChange = { nameField = it }, onDone = ::commitName)
-                                } else {
-                                    Text(
-                                        session.name, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 18.sp,
-                                        modifier = Modifier.clickable { startEditName() },
-                                    )
+                                SessionNameFrame(editing = editingName) {
+                                    if (editingName) {
+                                        NameEditor(nameField, onChange = { nameField = it }, onDone = ::commitName)
+                                    } else {
+                                        Text(
+                                            session.name, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 17.sp,
+                                            modifier = Modifier.fillMaxWidth().clickable { startEditName() },
+                                        )
+                                    }
                                 }
                                 val rated = active.count { it.rating > 0 }
-                                val f = if (ui.filter.isActive && !inBin) " · showing ${shown.size}" else ""
+                                val f = if (ui.filter.isActive && !inBin) " · Filter: ${ui.filter.describe(LabelNames)}" else ""
                                 val c = session.culledCount.let { if (it > 0) " · Culled $it" else "" }
                                 Text(
                                     if (session.isFinished) "Finished · processed ${session.processedCount}"
                                     else "Rated $rated / ${active.size}$c$f",
-                                    fontSize = 12.sp, color = Color.Gray,
+                                    fontSize = 12.sp, color = Color.Gray, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(top = 2.dp),
                                 )
                             }
                         }
@@ -293,7 +300,7 @@ fun GalleryScreen(
                     Tab(
                         selected = ui.tab == 0,
                         onClick = { if (ui.tab != 0) { ui.exitSelection(); ui.tab = 0 } },
-                        text = { Text("Gallery (${active.size})") },
+                        text = { Text("Gallery (${shown.size})") },
                     )
                     Tab(
                         selected = ui.tab == 1,
@@ -347,6 +354,9 @@ fun GalleryScreen(
                                 onClick = { onCompare(selectedPhotos[0].id, selectedPhotos[1].id) },
                                 enabled = selectedPhotos.size == 2,
                             )
+                            BarAction(Icons.Outlined.RemoveCircleOutline, "Exclude", onClick = {
+                                confirmExclude = selectedPhotos.map { it.id }
+                            }, enabled = any)
                             BarAction(Icons.Outlined.Delete, "Bin", onClick = {
                                 val binnable = selectedPhotos.filter { !it.isCulled }.map { it.id }
                                 val kept = selectedPhotos.size - binnable.size
@@ -368,6 +378,9 @@ fun GalleryScreen(
                                 undoable("Restored ${before.size} to gallery", before)
                             }, enabled = any)
                             BarAction(Icons.Outlined.Share, "Share", onClick = { FileOps.share(context, selectedPhotos) }, enabled = any)
+                            BarAction(Icons.Outlined.RemoveCircleOutline, "Exclude", onClick = {
+                                confirmExclude = selectedPhotos.map { it.id }
+                            }, enabled = any)
                             BarAction(
                                 Icons.Outlined.DeleteForever, "Delete",
                                 onClick = { confirmDelete = selectedPhotos }, enabled = any,
@@ -412,12 +425,23 @@ fun GalleryScreen(
                         Text("Add photos")
                     }
                 }
+            } else if (list.isEmpty() && !inBin && active.isNotEmpty() && ui.filter.isActive) {
+                Column(
+                    Modifier.align(Alignment.Center).padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text("No photos match the filter", color = Color.Gray, fontSize = 18.sp)
+                    Spacer(Modifier.height(6.dp))
+                    Text(ui.filter.describe(LabelNames), color = Color.White, fontSize = 15.sp)
+                    Spacer(Modifier.height(16.dp))
+                    Button(onClick = { ui.filter = RatingFilter() }) { Text("Clear filter") }
+                    TextButton(onClick = { showFilter = true }) { Text("Edit filter") }
+                }
             } else if (list.isEmpty()) {
                 Text(
                     when {
                         inBin -> "The bin is empty"
-                        active.isEmpty() -> "All photos are in the bin"
-                        else -> "No photos match the filter"
+                        else -> "All photos are in the bin"
                     },
                     color = Color.Gray,
                     modifier = Modifier.align(Alignment.Center),
@@ -429,6 +453,7 @@ fun GalleryScreen(
                 list = list,
                 grid = grid,
                 cols = cols,
+                factor = factor,
                 ui = ui,
                 onOpen = { p -> onOpenViewer(list.map { it.id }, p.id, inBin) },
             )
@@ -545,6 +570,27 @@ fun GalleryScreen(
         )
     }
     if (showSettings) SettingsDialog { showSettings = false }
+    confirmExclude?.let { ids ->
+        AlertDialog(
+            onDismissRequest = { confirmExclude = null },
+            title = { Text("Exclude ${ids.size} photos from this session?") },
+            text = { Text("The files stay where they are, untouched. You can add them again later with Add photos.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmExclude = null
+                    val removed = repo.exclude(sid, ids)
+                    ui.exitSelection()
+                    scope.launch {
+                        snackbar.currentSnackbarData?.dismiss()
+                        if (snackbar.showSnackbar("Excluded ${removed.size} photos", actionLabel = "Undo", withDismissAction = true) ==
+                            SnackbarResult.ActionPerformed
+                        ) repo.reinclude(sid, removed)
+                    }
+                }) { Text("Exclude") }
+            },
+            dismissButton = { TextButton(onClick = { confirmExclude = null }) { Text("Cancel") } },
+        )
+    }
     confirmDelete?.let { photos ->
         val files = photos.sumOf { it.allPaths.size }
         AlertDialog(
@@ -580,8 +626,9 @@ fun GalleryScreen(
 }
 
 @Composable
-private fun PhotoGrid(list: List<Photo>, grid: LazyGridState, cols: Int, ui: GalleryUi, onOpen: (Photo) -> Unit) {
+private fun PhotoGrid(list: List<Photo>, grid: LazyGridState, cols: Int, factor: Int, ui: GalleryUi, onOpen: (Photo) -> Unit) {
     val currentList by androidx.compose.runtime.rememberUpdatedState(list)
+    val prefs = LocalContext.current.app.prefs
     LazyVerticalGrid(
         columns = GridCells.Fixed(cols),
         state = grid,
@@ -589,6 +636,7 @@ private fun PhotoGrid(list: List<Photo>, grid: LazyGridState, cols: Int, ui: Gal
         verticalArrangement = Arrangement.spacedBy(2.dp),
         modifier = Modifier
             .fillMaxSize()
+            .pinchColumns(grid, columns = { prefs.gridColumns }, factor = factor, onChange = prefs::updateGridColumns)
             .dragSelect(
                 grid = grid,
                 keyAt = { i -> currentList.getOrNull(i)?.id },
@@ -699,7 +747,12 @@ private fun FilterSheet(filter: RatingFilter, count: Int, onChange: (RatingFilte
                     Modifier
                         .size(52.dp)
                         .border(1.5.dp, Color.White, RoundedCornerShape(10.dp))
-                        .clickable { onChange(filter.copy(op = filter.op.next(), unratedOnly = false)) },
+                        .clickable {
+                            val next = filter.op.next()
+                            // "<" is for acting on weak photos: "only culled" would almost always show nothing.
+                            val culled = if (next == FilterOp.LT && filter.culled == CulledMode.ONLY) CulledMode.SHOW else filter.culled
+                            onChange(filter.copy(op = next, unratedOnly = false, culled = culled))
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(filter.op.symbol, fontSize = 26.sp, fontWeight = FontWeight.Bold)
@@ -800,17 +853,13 @@ private fun NameEditor(value: TextFieldValue, onChange: (TextFieldValue) -> Unit
         value = value,
         onValueChange = onChange,
         singleLine = true,
-        textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+        textStyle = TextStyle(color = Color.White, fontSize = 17.sp),
         cursorBrush = SolidColor(Accent),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { onDone() }),
         modifier = Modifier
             .fillMaxWidth()
-            .focusRequester(focus)
-            .drawBehind {
-                val y = size.height + 2.dp.toPx()
-                drawLine(Accent, Offset(0f, y), Offset(size.width, y), strokeWidth = 1.5.dp.toPx())
-            },
+            .focusRequester(focus),
     )
     LaunchedEffect(Unit) {
         focus.requestFocus()
@@ -828,5 +877,28 @@ private fun Banner(text: String, action: String, onAction: () -> Unit) {
         Spacer(Modifier.width(8.dp))
         Text(text, modifier = Modifier.weight(1f))
         TextButton(onClick = onAction) { Text(action, color = CulledGreen) }
+    }
+}
+
+/** Session name in a pale rounded frame with a small "Session" label in the top border. */
+@Composable
+private fun SessionNameFrame(editing: Boolean, content: @Composable () -> Unit) {
+    val line = if (editing) Accent else Color.White.copy(alpha = 0.22f)
+    Box(Modifier.padding(top = 7.dp, end = 8.dp)) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .border(1.dp, line, RoundedCornerShape(6.dp))
+                .padding(horizontal = 10.dp, vertical = 5.dp),
+        ) { content() }
+        Text(
+            "Session",
+            fontSize = 11.sp,
+            color = if (editing) Accent else Color.Gray,
+            modifier = Modifier
+                .offset(x = 8.dp, y = (-8).dp)
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(horizontal = 4.dp),
+        )
     }
 }

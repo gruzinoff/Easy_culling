@@ -47,21 +47,6 @@ with the same key (`signing/`).
   bin asks for confirmation, then brings it back to the gallery. *Delete all* permanently
   deletes the bin's files after a confirmation.
 
-## Receiving photos from the camera (Wi-Fi, FTP)
-
-For cameras with an **FTP Transfer** function (e.g. Sony α series). The app runs a small FTP server
-on the phone; the camera sends photos straight to it over the phone's hotspot. No internet or
-cloud is involved, and it keeps working with the screen off.
-
-1. Sessions list → Wi-Fi icon → **Receive from camera**. Choose the folder (default
-   `Pictures/Unculled`) and tap **Start**.
-2. Turn on the phone's hotspot and connect the camera to it.
-3. On the camera, enter the host, port, user and password shown on that screen
-   (MENU → Network → FTP Transfer → Server Setting; passive mode on, directory empty).
-4. Send with FTP Transfer, or switch on Auto FTP Transfer to send each photo after shooting.
-
-Received photos then appear in **Add photos** under their folder.
-
 ## Building
 
 GitHub Actions builds the APK on every push (`.github/workflows/build.yml`) and publishes it as a

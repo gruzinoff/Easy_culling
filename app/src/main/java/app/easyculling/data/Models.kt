@@ -75,6 +75,29 @@ data class RatingFilter(
 ) {
     val isActive: Boolean get() = stars > 0 || unratedOnly || labels.isNotEmpty() || culled != CulledMode.SHOW
 
+    /** Plain-words summary, e.g. "below 3★ · only culled". */
+    fun describe(labelNames: List<String>): String {
+        val parts = ArrayList<String>()
+        when {
+            unratedOnly -> parts += "unrated only"
+            stars > 0 -> parts += when (op) {
+                FilterOp.GE -> "$stars★ and up"
+                FilterOp.EQ -> "exactly $stars★"
+                FilterOp.LT -> "below $stars★"
+            }
+        }
+        if (labels.isNotEmpty()) {
+            parts += labels.sorted().mapNotNull { labelNames.getOrNull(it - 1) }.joinToString(", ") +
+                if (labels.size == 1) " label" else " labels"
+        }
+        when (culled) {
+            CulledMode.ONLY -> parts += "only culled"
+            CulledMode.HIDE -> parts += "hide culled"
+            CulledMode.SHOW -> {}
+        }
+        return parts.joinToString(" · ")
+    }
+
     fun matches(p: Photo): Boolean {
         val ratingOk = when {
             unratedOnly -> p.rating == 0

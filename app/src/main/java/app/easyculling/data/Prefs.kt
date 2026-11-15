@@ -21,6 +21,12 @@ class Prefs(context: Context) {
         private set
     var haptics by mutableStateOf(sp.getBoolean("haptics", true))
         private set
+    /** Column count of the Add photos browser (the gallery uses [gridColumns]). */
+    var pickerColumns by mutableIntStateOf(sp.getInt("pickerColumns", 3))
+        private set
+    /** Add photos browser: newest photos first (default) or oldest first. */
+    var pickerNewestFirst by mutableStateOf(sp.getBoolean("pickerNewestFirst", true))
+        private set
 
     /** Default folder for culled photos (null until chosen). */
     var culledFolder by mutableStateOf(sp.getString("culledFolder", null))
@@ -30,19 +36,6 @@ class Prefs(context: Context) {
         private set
     var keepersThreshold by mutableIntStateOf(sp.getInt("keepersThreshold", 3))
         private set
-
-    // ---- receiving from the camera (FTP) ----
-    var ftpFolder by mutableStateOf(
-        sp.getString("ftpFolder", null)
-            ?: (Environment.getExternalStorageDirectory().path + "/" + Environment.DIRECTORY_PICTURES + "/Unculled"),
-    )
-        private set
-    val ftpPort: Int get() = 2121
-    val ftpUser: String get() = "camera"
-    /** Random 6-digit password, created once. */
-    val ftpPassword: String =
-        sp.getString("ftpPassword", null) ?: (100000 + java.security.SecureRandom().nextInt(900000)).toString()
-            .also { sp.edit().putString("ftpPassword", it).apply() }
 
     // ---- remembered UI state ----
     var controlsVisible by mutableStateOf(sp.getBoolean("controlsVisible", true))
@@ -57,6 +50,8 @@ class Prefs(context: Context) {
     fun updateAutoAdvance(v: Boolean) { autoAdvance = v; sp.edit().putBoolean("autoAdvance", v).apply() }
     fun updateGridColumns(v: Int) { gridColumns = v; sp.edit().putInt("gridColumns", v).apply() }
     fun updateHaptics(v: Boolean) { haptics = v; sp.edit().putBoolean("haptics", v).apply() }
+    fun updatePickerColumns(v: Int) { pickerColumns = v; sp.edit().putInt("pickerColumns", v).apply() }
+    fun updatePickerNewestFirst(v: Boolean) { pickerNewestFirst = v; sp.edit().putBoolean("pickerNewestFirst", v).apply() }
     fun updateCulledFolder(v: String?) {
         culledFolder = v
         culledFolderAsked = true
@@ -64,7 +59,6 @@ class Prefs(context: Context) {
     }
     fun markCulledFolderAsked() { culledFolderAsked = true; sp.edit().putBoolean("culledFolderAsked", true).apply() }
     fun updateKeepersThreshold(v: Int) { keepersThreshold = v; sp.edit().putInt("keepersThreshold", v).apply() }
-    fun updateFtpFolder(v: String) { ftpFolder = v; sp.edit().putString("ftpFolder", v).apply() }
     fun updateControlsVisible(v: Boolean) { controlsVisible = v; sp.edit().putBoolean("controlsVisible", v).apply() }
     fun updateLastMoveDir(v: String) { lastMoveDir = v; sp.edit().putString("lastMoveDir", v).apply() }
 

@@ -38,7 +38,6 @@ import app.easyculling.data.RatingFilter
 
 sealed interface Screen {
     data object Sessions : Screen
-    data object Receive : Screen
     data class Picker(val sid: String, val thenOpenGallery: Boolean) : Screen
     data class Gallery(val sid: String) : Screen
     data class Viewer(val sid: String, val ids: List<Long>, val startId: Long, val fromBin: Boolean) : Screen
@@ -127,16 +126,14 @@ fun AppRoot() {
             is Screen.Viewer -> top.sid
             is Screen.Compare -> top.sid
             is Screen.MoveTarget -> top.sid
-            Screen.Sessions, Screen.Receive -> null
+            Screen.Sessions -> null
         }
     }
     BackHandler(enabled = nav.stack.size > 1 && nav.top !is Screen.Viewer && nav.top !is Screen.Gallery) { nav.pop() }
 
     when (val s = nav.top) {
-        Screen.Receive -> ReceiveScreen(onBack = { nav.pop() })
         Screen.Sessions -> SessionsScreen(
             onOpen = { nav.push(Screen.Gallery(it)) },
-            onReceive = { nav.push(Screen.Receive) },
             onCreated = { nav.push(Screen.Gallery(it)) },
         )
         is Screen.Picker -> PickerScreen(

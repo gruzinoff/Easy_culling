@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -102,6 +103,14 @@ fun PickerScreen(sid: String, onDone: () -> Unit) {
                     }
                 },
                 actions = {
+                    if (open != null) {
+                        val newest = context.app.prefs.pickerNewestFirst
+                        TextButton(onClick = { context.app.prefs.updatePickerNewestFirst(!newest) }) {
+                            Icon(Icons.AutoMirrored.Filled.Sort, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(if (newest) "Newest" else "Oldest")
+                        }
+                    }
                     open?.let { b ->
                         val items = selectable(b)
                         val all = items.isNotEmpty() && items.all { it.path in selected }
@@ -201,23 +210,32 @@ private fun BucketGrid(
     onSetSelection: (Set<String>) -> Unit,
 ) {
     val landscape = LocalConfiguration.current.screenWidthDp > LocalConfiguration.current.screenHeightDp
+    val prefs = LocalContext.current.app.prefs
     val grid = remember(bucket.key) { LazyGridState() }
     val currentSelected by rememberUpdatedState(selected)
+    // Capture date, newest first by default; same-second shots by file name.
+    val newestFirst = prefs.pickerNewestFirst
+    val sorted = remember(bucket, newestFirst) {
+        val byDate = bucket.items.sortedWith(compareBy<MediaItem> { it.dateTaken }.thenBy { it.name.lowercase() })
+        if (newestFirst) byDate.reversed() else byDate
+    }
+    val factor = if (landscape) 2 else 1
     LazyVerticalGrid(
-        columns = GridCells.Fixed(LocalContext.current.app.prefs.gridColumns * if (landscape) 2 else 1),
+        columns = GridCells.Fixed(prefs.pickerColumns * factor),
         state = grid,
         modifier = modifier
             .fillMaxSize()
+            .pinchColumns(grid, columns = { prefs.pickerColumns }, factor = factor, onChange = prefs::updatePickerColumns)
             .dragSelect(
                 grid = grid,
-                keyAt = { i -> bucket.items.getOrNull(i)?.path?.takeIf { it !in already } },
+                keyAt = { i -> sorted.getOrNull(i)?.path?.takeIf { it !in already } },
                 selection = { currentSelected },
                 onSelectionChange = onSetSelection,
             ),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        items(bucket.items, key = { it.path }) { item: MediaItem ->
+        items(sorted, key = { it.path }) { item: MediaItem ->
             val isIn = item.path in already
             val isSel = item.path in selected
             Box(
