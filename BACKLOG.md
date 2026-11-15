@@ -73,33 +73,49 @@ Nothing here is built yet. Items are written so they can be picked up directly.
 
 ---
 
-## 5. Finished session: summary screen
+## 5. Ending a session: "Session finished" screen and stats
 
-**When it appears.** When the session has no open photos left: everything was either culled or
-removed, and the bin is empty.
+**Purpose.** Make it visible that the job is done, and how much work it was.
 
-**Gallery screen in this state.** It shows a summary in place of the grid:
-- **Processed X photos**: all photos ever added to the session.
-- **Culled Y photos**, with an **Open folder** button. If photos were moved to several folders,
-  each folder is listed with its count and its own button.
-- **Removed Z photos**: permanently deleted from the bin.
-- A **View culled photos** button that shows the grid filtered to "Only culled".
+**Two ways to finish**
+1. **Suggested automatically.** When the last open photo is culled or permanently deleted
+   (gallery has no open photos left and the bin is empty), the app shows a dialog:
+   **"All photos processed 🎉 Finish this session?"** [Finish session] [Not yet].
+   "Not yet" closes the dialog and leaves a slim banner at the top of the gallery with a
+   **Finish** button, so the suggestion doesn't pop up again.
+2. **Manually, at any time.** In the gallery: ⋮ → **End culling session**. A confirmation shows
+   what is still open: "312 photos are not culled yet (40 rated, 272 unrated). Finish anyway?"
+   - If the bin still has photos, the dialog has a checkbox **"Also delete the N photos in the
+     bin"** (unchecked by default). If left unchecked, they stay on disk, untouched.
+   - Ending a session never moves or deletes files on its own. Open photos simply stay where they
+     are.
 
-The sessions list marks the session **"Finished"** and shows the same three numbers.
+**Finished gallery screen.** Shown in place of the grid:
+- a large **green tick** with **"Session finished"** and the finish date;
+- **stats**:
+  - **Processed X photos**: all photos ever added to the session;
+  - **Culled Y**, with an **Open folder** button (one per folder if several were used);
+  - **Removed Z**: permanently deleted;
+  - only if the session was finished with photos still open, also **Left: N**, split into
+    **Rated R** and **Unrated U**. The bin count is shown too if the bin wasn't emptied;
+- buttons: **View culled photos** (grid filtered to "Only culled") and **View all photos**
+  (normal grid, everything still viewable and rateable).
 
-**Data change.** The session needs a count of removed photos, because removed photos are dropped
-from the session today and their number would otherwise be lost.
+**Sessions list**
+- A finished session shows a **green tick** next to its name and a short stats line:
+  **"Processed 1638 photos · culled 214"**.
+- Unfinished sessions keep the current line, plus "culled N" from item 3.
+
+**Reopening.** ⋮ → **Reopen session** (or adding photos to it) makes it active again. The
+finished state and tick disappear until it is finished again.
+
+**Data changes**
+- The session stores `finishedAt` and a count of removed photos. Removed photos are dropped from
+  the session today and their number would otherwise be lost.
 
 **Technical note: "Open folder".** Android has no single reliable way to open a folder in
-another app. The plan is to try to open it in the phone's file manager (Samsung My Files) and, if
-that fails, show the folder's photos in an in-app grid. This needs testing on the phone.
-
-**Open questions**
-- Should there be a manual **"Finish session"** button (for example, when you leave some photos
-  neither moved nor deleted on purpose)? If yes, the leftovers would count as "Left in import
-  folder: N".
-- Can a finished session be reopened by adding more photos? Proposal: yes. Adding photos makes
-  it active again.
+another app. The plan is to try Samsung My Files first and, if that fails, show the folder's
+photos in an in-app grid. This needs testing on the phone.
 
 ---
 
