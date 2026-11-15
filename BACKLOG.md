@@ -220,14 +220,17 @@ goes to the background, so a crash loses at most a minute.
 
 ---
 
-## 9. New session without the naming step; rename with a pen icon
+## 9. New session without the naming step; rename by tapping the name
 
 **Behaviour**
 - **New session** creates the session immediately with an automatic name, for example
   **"14 Nov 2026, 18:36"** (date and time of creation). The name dialog is removed. It goes
   straight to Add photos, and then to the gallery.
-- In the gallery top bar, the session name gets a small **pen icon ✏️** next to it. Tapping the
-  name or the pen opens the rename dialog, with the current name pre-filled and selected so typing
-  replaces it.
-- "Rename session" is removed from the gallery ⋮ menu (the pen replaces it). The sessions list
-  keeps Rename in its ⋮ menu.
+- In the gallery, **tapping the session name** in the top bar turns it into an editable text
+  field in place, with the keyboard open and the whole name selected so typing replaces it. No pen
+  icon and no dialog.
+  - Keyboard **Done** or tapping anywhere else saves.
+  - Back cancels the edit.
+  - An empty name is not saved; the previous name stays.
+- "Rename session" is removed from the gallery ⋮ menu. The sessions list keeps Rename in its ⋮
+  menu.
