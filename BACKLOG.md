@@ -335,14 +335,25 @@ as an input box.
   - a **Clear filter** button that resets all filters in one tap, and a smaller
     **Edit filter** button that opens the filter panel.
 - The same short description of the active filter also shows in the header line instead of
-  "showing N", for example "Rated 57 / 281 · Culled 57 · Filter: below 3★ · only culled (0)",
-  so it is visible even when the gallery isn't empty.
+  "showing N", for example "Rated 57 / 281 · Culled 57 · Filter: below 3★ · only culled",
+  so it is visible even when the gallery isn't empty. The number of photos shown is in the
+  Gallery tab (item 16).
 - Other empty states are unchanged: "No photos yet" + Add photos, "The bin is empty",
   "All photos are in the bin".
 
 ---
 
-## 16. Describe photos with text, for finding them later (ON HOLD)
+## 16. Gallery tab shows how many photos are displayed
+
+**Behaviour**
+- The **Gallery** tab label shows the number of photos **currently displayed**, after the filter:
+  "Gallery (57)" when a filter shows 57 photos; "Gallery (281)" with no filter.
+- The session total stays in the line under the session name ("Rated 25 / **281**").
+- The **Bin** tab keeps showing the number of photos in the bin (the filter doesn't apply there).
+
+---
+
+## 17. Describe photos with text, for finding them later (ON HOLD)
 
 **Goal.** Attach a short piece of text to one photo (single photo view) or many at once (gallery
 selection), so the photo can be found later, for example "Lisbon, Alfama, sunset" or "Masha's
