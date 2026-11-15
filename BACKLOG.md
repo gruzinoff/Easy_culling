@@ -3,7 +3,7 @@
 Nothing here is built yet. Items are written so they can be picked up directly.
 
 **Build plan.** Several small builds, each tested on the phone before the next:
-**8 + 4** → **1–3** → **6** → **5** → **7**. Item 9 is on hold.
+~~**8 + 4**~~ (done, build 7) → **1–3** → **6** → **5** → **7**. Item 9 is on hold.
 
 **Terms used below**
 - **Culled photo**: a photo moved out of its import folder by this app, to any folder: the
@@ -73,7 +73,7 @@ Nothing here is built yet. Items are written so they can be picked up directly.
 
 ---
 
-## 4. Empty session: "Add photos" button on the gallery screen
+## 4. Empty session: "Add photos" button on the gallery screen (DONE: build 7)
 
 **Behaviour**
 - A new session with no photos shows, in the middle of the gallery screen: **"No photos yet"**
@@ -193,7 +193,7 @@ goes to the background, so a crash loses at most a minute.
 
 ---
 
-## 8. New session without the naming step; rename by tapping the name
+## 8. New session without the naming step; rename by tapping the name (DONE: build 7)
 
 **Behaviour**
 - **New session** creates the session immediately with an automatic name: the creation date and
