@@ -31,6 +31,20 @@ object FileOps {
         context.startActivity(chooser)
     }
 
+    /** Sends the activity log as a text file (e.g. to a chat), for troubleshooting. */
+    fun shareLog(context: Context) {
+        val f = AppLog.file()?.takeIf { it.exists() } ?: return
+        val uri = uriFor(context, f)
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, "Easy Culling activity log")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            clipData = ClipData.newRawUri(null, uri)
+        }
+        context.startActivity(Intent.createChooser(intent, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
     private fun uriFor(context: Context, f: File): Uri =
         FileProvider.getUriForFile(context, context.packageName + ".files", f)
 
@@ -47,8 +61,10 @@ object FileOps {
             val errors = ArrayList<String>()
             val scan = ArrayList<String>()
             val moved = HashMap<Long, Moved>()
+            AppLog.i("Move start: ${photos.size} photos -> ${dest.path}")
             photos.forEachIndexed { i, p ->
-                progress(i)
+                // Report progress on the main thread; a failure here must never stop the move.
+                runCatching { withContext(Dispatchers.Main) { progress(i) } }
                 try {
                     val sources = p.allPaths.map(::File).filter { it.exists() }
                     if (sources.isEmpty()) throw IOException("file not found")
@@ -60,6 +76,7 @@ object FileOps {
                     for (src in sources) {
                         val target = File(dest, base + "." + src.extension)
                         moveFile(src, target)
+                        if (!target.exists()) throw IOException("file is not in the destination after moving")
                         newPaths[src.path] = target.path
                         scan += src.path; scan += target.path
                     }
@@ -70,9 +87,11 @@ object FileOps {
                     done += p.id
                 } catch (t: Throwable) {
                     errors += "${p.name}: ${t.message}"
+                    AppLog.e("Move failed for ${p.path}", t)
                 }
             }
             if (scan.isNotEmpty()) MediaScannerConnection.scanFile(context, scan.toTypedArray(), null, null)
+            AppLog.i("Move end: moved ${done.size} of ${photos.size}, failed ${errors.size}")
             Result(done, errors, moved)
         }
 
@@ -124,6 +143,7 @@ object FileOps {
 
     /** Permanently deletes the files of each photo. */
     suspend fun delete(context: Context, photos: List<Photo>): Result = withContext(Dispatchers.IO) {
+        AppLog.i("Delete start: ${photos.size} photos from the bin")
         val done = ArrayList<Long>()
         val errors = ArrayList<String>()
         val scan = ArrayList<String>()
@@ -137,6 +157,7 @@ object FileOps {
             if (ok) done += p.id else errors += "${p.name}: could not delete"
         }
         if (scan.isNotEmpty()) MediaScannerConnection.scanFile(context, scan.toTypedArray(), null, null)
+        AppLog.i("Delete end: deleted ${done.size}, failed ${errors.size}")
         Result(done, errors)
     }
 }

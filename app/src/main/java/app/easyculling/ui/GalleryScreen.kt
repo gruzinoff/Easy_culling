@@ -458,7 +458,8 @@ fun GalleryScreen(
             endDialog = false
             scope.launch {
                 if (deleteBin) {
-                    val binPhotos = session.photos.filter { it.inBin }
+                    // Re-read the current state: only photos that are in the bin right now.
+                    val binPhotos = repo.session(sid)?.photos?.filter { it.inBin && !it.isCulled } ?: emptyList()
                     repo.metadata.forget(binPhotos.flatMap { it.allPaths })
                     val r = FileOps.delete(context, binPhotos)
                     repo.removeDeleted(sid, r.done)
@@ -501,7 +502,11 @@ fun GalleryScreen(
                 val r = moveAndMarkCulled(context, sid, keepers, java.io.File(folder)) { moveProgress = it }
                 moveProgress = null
                 val failed = if (r.errors.isEmpty()) "" else " (${r.errors.size} failed: ${r.errors.first()})"
-                snackbar.showSnackbar("Moved ${r.done.size} photos to ${FileOps.displayPath(folder)}$failed")
+                snackbar.showSnackbar(
+                    "Moved ${r.done.size} of ${keepers.size} photos to ${FileOps.displayPath(folder)}$failed",
+                    withDismissAction = true,
+                    duration = androidx.compose.material3.SnackbarDuration.Indefinite,
+                )
             }
             scope.launch {
                 // Offer to bin what is left below the threshold once the move has finished.
@@ -553,8 +558,12 @@ fun GalleryScreen(
                     confirmDelete = null
                     busy = true
                     scope.launch {
-                        repo.metadata.forget(photos.flatMap { it.allPaths })
-                        val r = FileOps.delete(context, photos)
+                        // Safety: re-check against the current state and delete only photos that are
+                        // in the bin right now (never culled or gallery photos).
+                        val wanted = photos.map { it.id }.toSet()
+                        val safe = repo.session(sid)?.photos?.filter { it.id in wanted && it.inBin && !it.isCulled } ?: emptyList()
+                        repo.metadata.forget(safe.flatMap { it.allPaths })
+                        val r = FileOps.delete(context, safe)
                         repo.removeDeleted(sid, r.done)
                         ui.exitSelection()
                         busy = false

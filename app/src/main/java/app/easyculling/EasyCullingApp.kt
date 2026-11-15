@@ -33,6 +33,7 @@ class EasyCullingApp : Application(), SingletonImageLoader.Factory {
 
     override fun onCreate() {
         super.onCreate()
+        app.easyculling.data.AppLog.init(this)
         repo = Repository(this, scope)
         prefs = Prefs(this)
         timer = ActiveTimer(repo)

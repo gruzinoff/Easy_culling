@@ -248,7 +248,21 @@ goes to the background, so a crash loses at most a minute.
 
 ---
 
-## 11. Describe photos with text, for finding them later (ON HOLD)
+## 11. Exclude photos from the session
+
+**Behaviour**
+- In the gallery's selection mode (Gallery and Bin tabs), a new bottom-bar action
+  **Exclude** removes the selected photos from the session.
+- Confirmation: **"Exclude 12 photos from this session? The files stay where they are, untouched."**
+  [Exclude] [Cancel]. After excluding, an Undo snackbar.
+- Excluding never moves or deletes files. Ratings and labels already written stay in the files.
+- Excluded photos don't count anywhere in the session's stats (processed, culled, removed).
+  It is as if they were never added. They can be added again later with Add photos.
+- They show up again in Add photos as normal, not as "In session".
+
+---
+
+## 12. Describe photos with text, for finding them later (ON HOLD)
 
 **Goal.** Attach a short piece of text to one photo (single photo view) or many at once (gallery
 selection), so the photo can be found later, for example "Lisbon, Alfama, sunset" or "Masha's

@@ -46,7 +46,8 @@ import androidx.compose.runtime.setValue
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsDialog(onDismiss: () -> Unit) {
-    val prefs = LocalContext.current.app.prefs
+    val context = LocalContext.current
+    val prefs = context.app.prefs
     var chooseFolder by remember { mutableStateOf(false) }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Scaffold(
@@ -109,6 +110,18 @@ fun SettingsDialog(onDismiss: () -> Unit) {
                         Text("Culled folder", fontSize = 16.sp)
                         Text(
                             prefs.culledFolder?.let { FileOps.displayPath(it) } ?: "Not set — tap to choose",
+                            fontSize = 13.sp, color = Color.Gray,
+                        )
+                    }
+                }
+                Row(
+                    Modifier.fillMaxWidth().clickable { FileOps.shareLog(context) }.padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Share activity log", fontSize = 16.sp)
+                        Text(
+                            "Record of moves, deletions and errors, to send when something goes wrong",
                             fontSize = 13.sp, color = Color.Gray,
                         )
                     }

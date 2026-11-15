@@ -218,7 +218,7 @@ fun FolderPickerScreen(sid: String, ids: List<Long>, onBack: () -> Unit, onMoved
                 val r = moveAndMarkCulled(context, sid, photos, dir) { progress = it }
                 prefs.updateLastMoveDir(dir.path)
                 progress = null
-                doneMessage = "Moved ${r.done.size} photos to ${FileOps.displayPath(dir.path)}"
+                doneMessage = "Moved ${r.done.size} of ${photos.size} photos to ${FileOps.displayPath(dir.path)}"
                 if (r.errors.isEmpty()) onMoved(doneMessage) else errors = r.errors
             }
         },
@@ -227,7 +227,7 @@ fun FolderPickerScreen(sid: String, ids: List<Long>, onBack: () -> Unit, onMoved
     errors?.let { e ->
         AlertDialog(
             onDismissRequest = { errors = null; onMoved(doneMessage) },
-            title = { Text("${e.size} photos were not moved") },
+            title = { Text("${e.size} of ${ids.size} photos were not moved") },
             text = { Text(e.take(8).joinToString("\n")) },
             confirmButton = { Button(onClick = { errors = null; onMoved(doneMessage) }) { Text("OK") } },
         )

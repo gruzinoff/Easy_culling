@@ -69,6 +69,7 @@ class MetadataWriter(private val context: Context, scope: CoroutineScope) {
                 touched += path
             } catch (t: Throwable) {
                 _errors.tryEmit("Could not save rating into ${f.name}: ${t.message}")
+                AppLog.e("Rating write failed for $path", t)
             }
         }
         if (touched.isNotEmpty()) MediaScannerConnection.scanFile(context, touched.toTypedArray(), null, null)

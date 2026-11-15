@@ -58,6 +58,7 @@ class Repository(private val context: Context, private val scope: CoroutineScope
     fun setSortByTime(id: String, byTime: Boolean) = mutate(id) { it.copy(sortByTime = byTime) }
 
     fun deleteSession(id: String) {
+        AppLog.i("Session deleted (photo files untouched): ${session(id)?.name}")
         _sessions.update { list -> list.filter { it.id != id } }
         dirty.remove(id)
         scope.launch(Dispatchers.IO) { saveMutex.withLock { File(dir, "$id.json").delete() } }
