@@ -190,3 +190,44 @@ Keywords can be added later if needed.
 - To verify on the phone: whether Google Photos and Samsung Gallery show or search this field.
   Lightroom does. Google Photos and Samsung Gallery mostly use their own descriptions and may
   ignore it.
+
+---
+
+## 8. Track active culling time
+
+**Goal.** Show how long the culling actually took: time spent working on the session, not just
+"finished minus started".
+
+**What is counted**
+- The session's creation date and time is already saved, and stays shown as "Started …".
+- **Active time** is counted only while the app is on screen **and** one of this session's
+  screens is open (gallery, single photo view, compare, add photos, move folder picker).
+- Not counted: the app in the background, the screen off, the sessions list, Settings.
+- **Idle cut-off.** If there is no touch for **3 minutes**, counting pauses until the next touch,
+  and the idle minutes are not counted. This stops "phone left on the table with the app open"
+  from inflating the time. Thinking about a photo for a minute or two still counts.
+- Time keeps adding up across days and app restarts until the session is finished. Reopening a
+  finished session continues the same counter.
+
+**Where it is shown**
+- **Finished gallery screen** (item 5), in the stats: **"Culling time 3h 12m"**, plus
+  "Started 14 Nov 2026".
+- **Sessions list**, on a finished session's line: **"1684 processed in 3h 12m · culled 214"**.
+- Format: under 1 h → "47m"; otherwise "3h 12m".
+
+**Data change.** The session stores `activeMillis`. The app saves it every minute and whenever it
+goes to the background, so a crash loses at most a minute.
+
+---
+
+## 9. New session without the naming step; rename with a pen icon
+
+**Behaviour**
+- **New session** creates the session immediately with an automatic name, for example
+  **"14 Nov 2026, 18:36"** (date and time of creation). The name dialog is removed. It goes
+  straight to Add photos, and then to the gallery.
+- In the gallery top bar, the session name gets a small **pen icon ✏️** next to it. Tapping the
+  name or the pen opens the rename dialog, with the current name pre-filled and selected so typing
+  replaces it.
+- "Rename session" is removed from the gallery ⋮ menu (the pen replaces it). The sessions list
+  keeps Rename in its ⋮ menu.
