@@ -413,7 +413,9 @@ Keywords can be added later if needed.
 
 ## Ideas considered and not pursued
 
-- **Receiving photos from the Sony a6700 directly in the app.** Copying Sony's own wireless
+- **(Superseded: FTP receiving was built afterwards. Photos from the camera arrive via the
+  camera's FTP Transfer function. Copying Sony's private protocol stays rejected.)**
+  **Receiving photos from the Sony a6700 directly in the app.** Copying Sony's own wireless
   transfer (what Creators' App does) was rejected: it is a private, undocumented protocol and
   could break with any camera firmware update. Photos keep coming in via Sony Creators' App.
   Two alternatives were noted in case this comes back:

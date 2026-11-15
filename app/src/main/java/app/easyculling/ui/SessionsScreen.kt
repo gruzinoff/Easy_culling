@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -56,7 +57,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SessionsScreen(onOpen: (String) -> Unit, onCreated: (String) -> Unit) {
+fun SessionsScreen(onOpen: (String) -> Unit, onCreated: (String) -> Unit, onReceive: () -> Unit) {
     val repo = LocalContext.current.app.repo
     val sessions by repo.sessions.collectAsState()
     var showSettings by remember { mutableStateOf(false) }
@@ -68,6 +69,14 @@ fun SessionsScreen(onOpen: (String) -> Unit, onCreated: (String) -> Unit) {
             TopAppBar(
                 title = { Text("Culling sessions") },
                 actions = {
+                    // Shows green while photos are being received in the background.
+                    val receiving by app.easyculling.ftp.FtpService.state.collectAsState()
+                    IconButton(onClick = onReceive) {
+                        Icon(
+                            Icons.Outlined.Wifi, "Receive from camera",
+                            tint = if (receiving.running) CulledGreen else androidx.compose.material3.LocalContentColor.current,
+                        )
+                    }
                     IconButton(onClick = { showSettings = true }) { Icon(Icons.Outlined.Settings, "Settings") }
                 },
             )

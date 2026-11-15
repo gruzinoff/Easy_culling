@@ -31,6 +31,19 @@ class Prefs(context: Context) {
     var keepersThreshold by mutableIntStateOf(sp.getInt("keepersThreshold", 3))
         private set
 
+    // ---- receiving from the camera (FTP) ----
+    var ftpFolder by mutableStateOf(
+        sp.getString("ftpFolder", null)
+            ?: (Environment.getExternalStorageDirectory().path + "/" + Environment.DIRECTORY_PICTURES + "/Unculled"),
+    )
+        private set
+    val ftpPort: Int get() = 2121
+    val ftpUser: String get() = "camera"
+    /** Random 6-digit password, created once. */
+    val ftpPassword: String =
+        sp.getString("ftpPassword", null) ?: (100000 + java.security.SecureRandom().nextInt(900000)).toString()
+            .also { sp.edit().putString("ftpPassword", it).apply() }
+
     // ---- remembered UI state ----
     var controlsVisible by mutableStateOf(sp.getBoolean("controlsVisible", true))
         private set
@@ -51,6 +64,7 @@ class Prefs(context: Context) {
     }
     fun markCulledFolderAsked() { culledFolderAsked = true; sp.edit().putBoolean("culledFolderAsked", true).apply() }
     fun updateKeepersThreshold(v: Int) { keepersThreshold = v; sp.edit().putInt("keepersThreshold", v).apply() }
+    fun updateFtpFolder(v: String) { ftpFolder = v; sp.edit().putString("ftpFolder", v).apply() }
     fun updateControlsVisible(v: Boolean) { controlsVisible = v; sp.edit().putBoolean("controlsVisible", v).apply() }
     fun updateLastMoveDir(v: String) { lastMoveDir = v; sp.edit().putString("lastMoveDir", v).apply() }
 
