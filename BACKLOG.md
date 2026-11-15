@@ -103,12 +103,29 @@ that fails, show the folder's photos in an in-app grid. This needs testing on th
 
 ---
 
-## 6. (Optional, later) One-step "Move keepers"
+## 6. Default culled folder + one-step "Move keepers"
 
-**Behaviour**
-- Each session remembers a **keepers folder**.
-- One action, **Move keepers**, moves every photo rated N★ or higher (N chosen when starting the
-  move, default 3★) that is not culled yet into that folder.
-- This replaces the routine filter → select all → move → pick folder.
+**Default culled folder**
+- On first launch, after granting file access, the app asks you to **choose the folder for culled
+  photos** (folder picker with a "New folder" button, for example `Pictures/Culled`). This folder
+  should hold only culled photos.
+- It can be changed later in **Settings → Culled folder**.
+- The manual Select → Move flow opens with this folder pre-selected. Any other folder can still
+  be chosen.
 
-Build only if that routine turns out to be repeated every session.
+**Move keepers (batch, never automatic)**
+- Rating **only marks** a photo. Nothing is moved while culling, however often the rating
+  changes (2 → 3 → 2 → 3 does nothing to the files).
+- When ready, tap **Move keepers** (gallery bottom bar or ⋮ menu). A confirmation shows:
+  "Move 57 photos rated ≥ 3★ to Pictures/Culled?". The threshold (1–5★) can be changed in that
+  dialog, defaults to 3★, and remembers the last value.
+- On confirm, all matching photos that are not culled yet are moved in one batch (JPEG and its RAW
+  together) and become **culled** (item 1).
+- Moving out again is not automatic. If a culled photo is later re-rated below the threshold, it
+  stays where it is. It is still marked culled, and you can move it back manually if wanted.
+
+**Why batch and not instant.** On the same storage a move is only a rename: fast, with no extra
+wear on the memory. But moving on every rating would:
+- trigger Google Photos backup uploads and removals each time a rating crosses the threshold;
+- move photos before the decision is final;
+- make undo and the gallery confusing.
