@@ -14,7 +14,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.foundation.border
@@ -234,7 +236,7 @@ fun GalleryScreen(
         topBar = {
             Column {
                 TopAppBar(
-                    expandedHeight = if (ui.selecting) 64.dp else 84.dp,
+                    expandedHeight = if (ui.selecting) 64.dp else 90.dp,
                     navigationIcon = {
                         if (ui.selecting) {
                             IconButton(onClick = { ui.exitSelection() }) { Icon(Icons.Filled.Close, "Cancel selection") }
@@ -884,19 +886,27 @@ private fun Banner(text: String, action: String, onAction: () -> Unit) {
 @Composable
 private fun SessionNameFrame(editing: Boolean, content: @Composable () -> Unit) {
     val line = if (editing) Accent else Color.White.copy(alpha = 0.22f)
-    Box(Modifier.padding(top = 7.dp, end = 8.dp)) {
+    // The label is a fixed 12 dp tall and centred on the top border (6 dp above, 6 dp below);
+    // the name starts 12 dp below the border, so the two never overlap.
+    Box(Modifier.padding(top = 6.dp, end = 8.dp)) {
         Box(
             Modifier
                 .fillMaxWidth()
                 .border(1.dp, line, RoundedCornerShape(6.dp))
-                .padding(horizontal = 10.dp, vertical = 5.dp),
+                .padding(start = 10.dp, end = 10.dp, top = 12.dp, bottom = 6.dp),
         ) { content() }
         Text(
             "Session",
-            fontSize = 11.sp,
+            style = TextStyle(
+                fontSize = 11.sp,
+                lineHeight = 12.sp,
+                platformStyle = PlatformTextStyle(includeFontPadding = false),
+                lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both),
+            ),
             color = if (editing) Accent else Color.Gray,
             modifier = Modifier
-                .offset(x = 8.dp, y = (-8).dp)
+                .offset(x = 8.dp, y = (-6).dp)
+                .height(12.dp)
                 .background(MaterialTheme.colorScheme.surface)
                 .padding(horizontal = 4.dp),
         )
