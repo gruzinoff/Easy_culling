@@ -353,7 +353,20 @@ as an input box.
 
 ---
 
-## 17. Describe photos with text, for finding them later (ON HOLD)
+## 17. Finished summary: date and time for start and finish
+
+**Behaviour**
+- Under the green tick and "Session finished", **no date** is shown any more.
+- The stats list ends with two rows, both with date **and** time:
+  - **Started**: "15 Nov 2026, 14:32"
+  - **Finished**: "15 Nov 2026, 15:39"
+- Order of the rows: Processed, Culled (+ folders), Removed, (Left / In bin if any),
+  Culling time, Started, Finished.
+- Time in 24-hour format, phone's local time.
+
+---
+
+## 18. Describe photos with text, for finding them later (ON HOLD)
 
 **Goal.** Attach a short piece of text to one photo (single photo view) or many at once (gallery
 selection), so the photo can be found later, for example "Lisbon, Alfama, sunset" or "Masha's
