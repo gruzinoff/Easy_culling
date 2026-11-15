@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.util.Size
 import app.easyculling.data.ActiveTimer
+import app.easyculling.data.AppLog
 import app.easyculling.data.Prefs
 import app.easyculling.data.Repository
 import app.easyculling.data.mediaUri
@@ -33,7 +34,7 @@ class EasyCullingApp : Application(), SingletonImageLoader.Factory {
 
     override fun onCreate() {
         super.onCreate()
-        app.easyculling.data.AppLog.init(this)
+        AppLog.init(this)
         repo = Repository(this, scope)
         prefs = Prefs(this)
         timer = ActiveTimer(repo)
