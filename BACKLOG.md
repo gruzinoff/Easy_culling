@@ -129,3 +129,48 @@ wear on the memory. But moving on every rating would:
 - trigger Google Photos backup uploads and removals each time a rating crosses the threshold;
 - move photos before the decision is final;
 - make undo and the gallery confusing.
+
+---
+
+## 7. Describe photos with text, for finding them later
+
+**Goal.** Attach a short piece of text to one photo (single photo view) or many at once (gallery
+selection), so the photo can be found later, for example "Lisbon, Alfama, sunset" or "Masha's
+birthday".
+
+**Open decision: one description line or several tags?** Both are standard fields that
+Lightroom/Bridge read and search:
+- **Description (caption)**: one free line of text per photo (XMP `dc:description`). Simple to
+  type. Search matches any word in it.
+- **Keywords (tags)**: several separate short words per photo (XMP `dc:subject`), for example
+  `Lisbon` `sunset` `family`. Better for adding or removing one tag on many photos, and for
+  picking from previously used tags.
+
+*Recommendation*: **description line**, because it matches "a short line of text describing the
+photo". To keep it fast, the input offers recently used descriptions as one-tap suggestions.
+Keywords can be added later if needed.
+
+**Single photo view**
+- With controls shown, a line above the stars shows the description, or a faint
+  "Add description…" if there is none. Tap it to edit with the keyboard. Done saves.
+- Recent descriptions appear above the keyboard as chips. One tap fills the field.
+- Hidden together with the other controls.
+- Changes go into the undo history, the same as ratings.
+
+**Gallery (batch)**
+- In selection mode, a new bottom-bar action **Describe** opens a dialog with the text field and
+  recent suggestions.
+- If some selected photos already have a different description, the dialog warns:
+  "Replaces the description on 12 photos". Undo works from the snackbar.
+
+**Finding photos**
+- The gallery gets a **search** field (🔍 in the top bar). Typing filters the grid to photos whose
+  description contains the text. It combines with the star/label/culled filters.
+- Optional, later: search across all sessions from the sessions list.
+
+**Storage**
+- Saved in the app and written into the photo files (JPEG and DNG), the same way as ratings. It
+  is preserved when photos are moved to the culled folder.
+- To verify on the phone: whether Google Photos and Samsung Gallery show or search this field.
+  Lightroom does. Google Photos and Samsung Gallery mostly use their own descriptions and may
+  ignore it.
