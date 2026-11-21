@@ -412,7 +412,7 @@ show the user the **whole flow and its final result**, not only the next step.
 
 ---
 
-## 19. Photo-booth collage
+## 19. Photo-booth collage (DONE: build 15)
 
 **Sessions list**
 - The single "New session" button becomes two: **Cull** and **Collage**.
