@@ -366,7 +366,53 @@ as an input box.
 
 ---
 
-## 18. Describe photos with text, for finding them later (ON HOLD)
+## 18. Make the whole culling flow visible from the start (RAW IDEA)
+
+**Status:** raw idea, to be shaped before building.
+
+**Problem.** In culling apps it is often unclear what the intended flow is. People learn it by
+trial and error. Because culling is time-consuming, it is disappointing when an early action
+causes problems later, when finalizing. Easy Culling should set the right expectations up front:
+show the user the **whole flow and its final result**, not only the next step.
+
+**The flow, as the user sees it**
+1. Define **where the unculled photos are**.
+2. **Cull** them (rate, compare, bin).
+3. **Confirm** that the photos are culled.
+4. **Delete the bad ones** once culling is confirmed.
+5. Define **where the culled photos are stored**.
+
+**Two typical variants**
+- **A. Cull in place.** Culled photos stay in the same folder where the unculled ones arrived.
+  Take the newly arrived photos, cull them, delete the bad ones. Nothing is moved.
+- **B. Separate culled folder.** Unculled photos land in an intermediate folder (e.g. the camera
+  app's import folder). Each photo eventually leaves it, either to the culled folder (keepers) or
+  to the bin (rejects), so the intermediate folder ends up empty.
+
+**Possible directions (to discuss)**
+- **Choose the variant at session start**, as a short setup: "Where are the photos?" plus
+  "Where should keepers end up? Same folder / a culled folder". The app then knows what "done"
+  means for this session.
+- **A visible step indicator** in the gallery, e.g. *Source → Cull → Confirm → Remove rejects →
+  Store keepers*, with the current step highlighted and finished steps ticked.
+- **Show the outcome in advance**, in plain words, e.g. "When you finish: 57 keepers will be in
+  Pictures/Culled, 224 rejects deleted, Camera folder empty".
+- **Make the end steps follow the variant:** variant B uses Move keepers + bin the rest (exists
+  today). Variant A would need "confirm" without moving anything.
+
+**Open questions**
+- **Variant A changes the meaning of "culled".** Today "culled" means *moved out of the import
+  folder*. In variant A keepers never move, so the app needs another "kept / done" state.
+- **Where is step 3 "Confirm"?** Is it the existing Move keepers / End session, or a separate
+  explicit "I'm done rating" step that unlocks deleting?
+- **Are steps 1 and 5 asked once per session or set once globally?** Today the culled folder is a
+  global setting; the source is chosen per session in Add photos.
+- How much guidance is welcome before it gets in the way of an experienced user? For example,
+  show the step indicator only until the first finished session, or always as a slim bar.
+
+---
+
+## 19. Describe photos with text, for finding them later (ON HOLD)
 
 **Goal.** Attach a short piece of text to one photo (single photo view) or many at once (gallery
 selection), so the photo can be found later, for example "Lisbon, Alfama, sunset" or "Masha's
