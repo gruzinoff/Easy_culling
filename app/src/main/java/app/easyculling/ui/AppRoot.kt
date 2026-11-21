@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -34,10 +35,16 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.easyculling.app
+import app.easyculling.collage.CollageLayout
 import app.easyculling.data.RatingFilter
 
 sealed interface Screen {
     data object Sessions : Screen
+    data object CollageNew : Screen
+    data class Collage(val cid: String) : Screen
+    data class CollageLayoutEdit(val cid: String) : Screen
+    data class CollagePicker(val cid: String, val startCell: Int?) : Screen
+    data class CollageCrop(val cid: String, val cell: Int) : Screen
     data class Picker(val sid: String, val thenOpenGallery: Boolean) : Screen
     data class Gallery(val sid: String) : Screen
     data class Viewer(val sid: String, val ids: List<Long>, val startId: Long, val fromBin: Boolean) : Screen
@@ -117,6 +124,7 @@ fun AppRoot() {
     }
 
     val nav = remember { Nav() }
+    val collages = context.app.collages
     // Tell the culling-time tracker which session's screen is showing.
     val top = nav.top
     SideEffect {
@@ -126,13 +134,56 @@ fun AppRoot() {
             is Screen.Viewer -> top.sid
             is Screen.Compare -> top.sid
             is Screen.MoveTarget -> top.sid
-            Screen.Sessions -> null
+            Screen.Sessions, Screen.CollageNew, is Screen.Collage, is Screen.CollageLayoutEdit,
+            is Screen.CollagePicker, is Screen.CollageCrop -> null
         }
     }
     BackHandler(enabled = nav.stack.size > 1 && nav.top !is Screen.Viewer && nav.top !is Screen.Gallery) { nav.pop() }
 
     when (val s = nav.top) {
+        Screen.CollageNew -> CollageLayoutScreen(
+            initial = CollageLayout(),
+            title = "New collage",
+            confirmLabel = "Create collage",
+            onCancel = { nav.pop() },
+            onConfirm = { layout ->
+                val name = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                nav.replace(Screen.Collage(collages.create(name, layout).id))
+            },
+        )
+        is Screen.Collage -> CollageEditorScreen(
+            cid = s.cid,
+            onBack = { nav.pop() },
+            onAddPhotos = { start -> nav.push(Screen.CollagePicker(s.cid, start)) },
+            onCrop = { cell -> nav.push(Screen.CollageCrop(s.cid, cell)) },
+            onEditLayout = { nav.push(Screen.CollageLayoutEdit(s.cid)) },
+        )
+        is Screen.CollageLayoutEdit -> {
+            val current = collages.get(s.cid)
+            if (current == null) {
+                LaunchedEffect(Unit) { nav.pop() }
+            } else CollageLayoutScreen(
+                initial = current.layout,
+                title = "Layout",
+                confirmLabel = "Apply",
+                onCancel = { nav.pop() },
+                onConfirm = { layout -> collages.update(s.cid) { it.withLayout(layout) }; nav.pop() },
+            )
+        }
+        is Screen.CollagePicker -> {
+            val ribbon = remember(s.cid) { collages.get(s.cid)?.photos?.mapTo(HashSet()) { it.path } ?: emptySet() }
+            PhotoPicker(
+                title = "Add photos to collage",
+                already = ribbon,
+                alreadyLabel = "In collage",
+                onAdd = { items, _ -> collages.addPhotos(s.cid, items.map { Triple(it.path, it.mediaId, it.name) }, s.startCell) },
+                onDone = { nav.pop() },
+            )
+        }
+        is Screen.CollageCrop -> CropEditorScreen(s.cid, s.cell, onDone = { nav.pop() })
         Screen.Sessions -> SessionsScreen(
+            onOpenCollage = { nav.push(Screen.Collage(it)) },
+            onNewCollage = { nav.push(Screen.CollageNew) },
             onOpen = { nav.push(Screen.Gallery(it)) },
             onCreated = { nav.push(Screen.Gallery(it)) },
         )

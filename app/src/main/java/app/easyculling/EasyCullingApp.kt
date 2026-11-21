@@ -3,6 +3,7 @@ package app.easyculling
 import android.app.Application
 import android.content.Context
 import android.util.Size
+import app.easyculling.collage.CollageStore
 import app.easyculling.data.ActiveTimer
 import app.easyculling.data.AppLog
 import app.easyculling.data.Prefs
@@ -31,6 +32,8 @@ class EasyCullingApp : Application(), SingletonImageLoader.Factory {
         private set
     lateinit var timer: ActiveTimer
         private set
+    lateinit var collages: CollageStore
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -38,6 +41,7 @@ class EasyCullingApp : Application(), SingletonImageLoader.Factory {
         repo = Repository(this, scope)
         prefs = Prefs(this)
         timer = ActiveTimer(repo)
+        collages = CollageStore(this, scope)
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader =

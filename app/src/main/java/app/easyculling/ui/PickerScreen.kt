@@ -70,13 +70,33 @@ import kotlinx.coroutines.launch
 fun PickerScreen(sid: String, onDone: () -> Unit) {
     val context = LocalContext.current
     val repo = context.app.repo
+    val already = remember(sid) { repo.session(sid)?.photos?.flatMapTo(HashSet()) { it.allPaths } ?: emptySet() }
+    PhotoPicker(
+        title = "Add photos",
+        already = already,
+        alreadyLabel = "In session",
+        onAdd = { items, progress -> repo.addPhotos(sid, items, context.app.prefs.culledFolder, progress) },
+        onDone = onDone,
+    )
+}
+
+/** Folder browser to pick photos; [onAdd] receives the chosen ones. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PhotoPicker(
+    title: String,
+    already: Set<String>,
+    alreadyLabel: String,
+    onAdd: suspend (List<MediaItem>, (Int, Int) -> Unit) -> Unit,
+    onDone: () -> Unit,
+) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var buckets by remember { mutableStateOf<List<Bucket>?>(null) }
     var open by remember { mutableStateOf<Bucket?>(null) }
     var selected by remember { mutableStateOf(emptySet<String>()) }
     var adding by remember { mutableStateOf(false) }
     var progress by remember { mutableFloatStateOf(0f) }
-    val already = remember(sid) { repo.session(sid)?.photos?.flatMapTo(HashSet()) { it.allPaths } ?: emptySet() }
 
     LaunchedEffect(Unit) { buckets = MediaLibrary.loadBuckets(context) }
     BackHandler(enabled = !adding) { if (open != null) open = null else onDone() }
@@ -93,7 +113,7 @@ fun PickerScreen(sid: String, onDone: () -> Unit) {
                 },
                 title = {
                     Column {
-                        Text(open?.name ?: "Add photos", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(open?.name ?: title, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         if (open != null) {
                             Text(
                                 "${selected.size} selected · hold & drag to select a range",
@@ -133,7 +153,7 @@ fun PickerScreen(sid: String, onDone: () -> Unit) {
                             val all = buckets.orEmpty().flatMap { it.items }.filter { it.path in selected }
                             adding = true
                             scope.launch {
-                                repo.addPhotos(sid, all, context.app.prefs.culledFolder) { i, n -> progress = if (n == 0) 1f else i.toFloat() / n }
+                                onAdd(all) { i, n -> progress = if (n == 0) 1f else i.toFloat() / n }
                                 adding = false
                                 onDone()
                             }
@@ -149,7 +169,7 @@ fun PickerScreen(sid: String, onDone: () -> Unit) {
                 CircularProgressIndicator()
             }
             open != null -> BucketGrid(
-                bucket = open!!, already = already, selected = selected,
+                bucket = open!!, already = already, alreadyLabel = alreadyLabel, selected = selected,
                 modifier = Modifier.padding(pad),
                 onToggle = { p -> selected = if (p in selected) selected - p else selected + p },
                 onSetSelection = { selected = it },
@@ -174,7 +194,7 @@ fun PickerScreen(sid: String, onDone: () -> Unit) {
                             Text(b.name, style = MaterialTheme.typography.titleMedium, maxLines = 1)
                             val extra = if (count > 0) " · $count selected" else ""
                             val added = b.items.size - items.size
-                            val addedTxt = if (added > 0) " · $added already in session" else ""
+                            val addedTxt = if (added > 0) " · $added already added" else ""
                             Text(
                                 "${b.items.size} photos$addedTxt$extra",
                                 style = MaterialTheme.typography.bodySmall, color = Color.Gray,
@@ -204,6 +224,7 @@ fun PickerScreen(sid: String, onDone: () -> Unit) {
 private fun BucketGrid(
     bucket: Bucket,
     already: Set<String>,
+    alreadyLabel: String,
     selected: Set<String>,
     modifier: Modifier,
     onToggle: (String) -> Unit,
@@ -251,7 +272,7 @@ private fun BucketGrid(
                 if (item.hasRaw) RawBadge(Modifier.align(Alignment.TopEnd).padding(4.dp))
                 if (isIn) {
                     Text(
-                        "In session", color = Color.White, style = MaterialTheme.typography.labelSmall,
+                        alreadyLabel, color = Color.White, style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.align(Alignment.Center),
                     )
                 } else {

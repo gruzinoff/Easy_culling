@@ -49,6 +49,6 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         // Make sure ratings reach the files and the session is saved when leaving the app.
-        app.scope.launch { app.repo.flush() }
+        app.scope.launch { app.repo.flush(); app.collages.flush() }
     }
 }

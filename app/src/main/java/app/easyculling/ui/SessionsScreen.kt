@@ -1,6 +1,14 @@
 package app.easyculling.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.ui.unit.sp
+import app.easyculling.collage.Collage
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,50 +64,89 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SessionsScreen(onOpen: (String) -> Unit, onCreated: (String) -> Unit) {
-    val repo = LocalContext.current.app.repo
+fun SessionsScreen(
+    onOpen: (String) -> Unit,
+    onCreated: (String) -> Unit,
+    onOpenCollage: (String) -> Unit,
+    onNewCollage: () -> Unit,
+) {
+    val context = LocalContext.current
+    val repo = context.app.repo
+    val store = context.app.collages
     val sessions by repo.sessions.collectAsState()
+    val collages by store.collages.collectAsState()
     var showSettings by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<Session?>(null) }
     var deleting by remember { mutableStateOf<Session?>(null) }
+    var renamingCollage by remember { mutableStateOf<Collage?>(null) }
+    var deletingCollage by remember { mutableStateOf<Collage?>(null) }
+    // Culling sessions and collages in one list, newest first.
+    val entries = remember(sessions, collages) {
+        (sessions.map { it.createdAt to (it as Any) } + collages.map { it.createdAt to (it as Any) })
+            .sortedByDescending { it.first }.map { it.second }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Culling sessions") },
+                title = { Text("Easy Culling") },
                 actions = {
                     IconButton(onClick = { showSettings = true }) { Icon(Icons.Outlined.Settings, "Settings") }
                 },
             )
         },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    val name = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-                    onCreated(repo.createSession(name).id)
-                },
-                icon = { Icon(Icons.Filled.Add, null) },
-                text = { Text("New session") },
-            )
+        bottomBar = {
+            androidx.compose.material3.Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+                Row(
+                    Modifier.fillMaxWidth().navigationBarsPadding().padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    androidx.compose.material3.Button(
+                        onClick = {
+                            val name = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+                            onCreated(repo.createSession(name).id)
+                        },
+                        modifier = Modifier.weight(1f).height(52.dp),
+                    ) {
+                        Icon(Icons.Outlined.StarOutline, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Cull")
+                    }
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = onNewCollage,
+                        modifier = Modifier.weight(1f).height(52.dp),
+                    ) {
+                        Icon(Icons.Outlined.GridView, null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Collage")
+                    }
+                }
+            }
         },
     ) { pad ->
-        if (sessions.isEmpty()) {
+        if (entries.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(pad), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Outlined.PhotoLibrary, null, Modifier.size(56.dp), tint = Color.Gray)
                     Spacer(Modifier.size(12.dp))
-                    Text("No sessions yet", color = Color.Gray)
-                    Text("Tap \"New session\" and add photos to start culling.", color = Color.Gray)
+                    Text("Nothing here yet", color = Color.Gray)
+                    Text("Tap Cull to start culling, or Collage to make a collage.", color = Color.Gray)
                 }
             }
         } else {
             LazyColumn(
                 Modifier.fillMaxSize().padding(pad),
-                contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 96.dp),
+                contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(sessions, key = { it.id }) { s ->
-                    SessionRow(s, onClick = { onOpen(s.id) }, onRename = { renaming = s }, onDelete = { deleting = s })
+                items(entries, key = { (it as? Session)?.id ?: (it as Collage).id }) { e ->
+                    when (e) {
+                        is Session -> SessionRow(e, onClick = { onOpen(e.id) }, onRename = { renaming = e }, onDelete = { deleting = e })
+                        is Collage -> CollageRow(
+                            e, onClick = { onOpenCollage(e.id) },
+                            onRename = { renamingCollage = e }, onDelete = { deletingCollage = e },
+                        )
+                    }
                 }
             }
         }
@@ -110,6 +157,20 @@ fun SessionsScreen(onOpen: (String) -> Unit, onCreated: (String) -> Unit) {
         NameDialog(title = "Rename session", initial = s.name, confirm = "Rename", onDismiss = { renaming = null }) {
             repo.renameSession(s.id, it); renaming = null
         }
+    }
+    renamingCollage?.let { cl ->
+        NameDialog(title = "Rename collage", initial = cl.name, confirm = "Rename", onDismiss = { renamingCollage = null }) { n ->
+            store.update(cl.id) { it.copy(name = n) }; renamingCollage = null
+        }
+    }
+    deletingCollage?.let { cl ->
+        AlertDialog(
+            onDismissRequest = { deletingCollage = null },
+            title = { Text("Delete collage?") },
+            text = { Text("\"${cl.name}\" will be removed from the app. Photos and exported collage files are not touched.") },
+            confirmButton = { TextButton(onClick = { store.delete(cl.id); deletingCollage = null }) { Text("Delete") } },
+            dismissButton = { TextButton(onClick = { deletingCollage = null }) { Text("Cancel") } },
+        )
     }
     deleting?.let { s ->
         AlertDialog(
@@ -147,6 +208,7 @@ private fun SessionRow(s: Session, onClick: () -> Unit, onRename: () -> Unit, on
                 }
                 Text(s.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
+            KindChip("Culling", Accent)
             Text(
                 sessionStatsLine(s),
                 style = MaterialTheme.typography.bodySmall,
@@ -180,3 +242,57 @@ fun NameDialog(title: String, initial: String, confirm: String, onDismiss: () ->
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
+
+@Composable
+private fun KindChip(text: String, color: Color) {
+    Text(
+        text,
+        color = color, fontSize = 10.sp,
+        modifier = Modifier
+            .padding(vertical = 2.dp)
+            .border(1.dp, color.copy(alpha = 0.7f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 6.dp, vertical = 1.dp),
+    )
+}
+
+@Composable
+private fun CollageRow(c: Collage, onClick: () -> Unit, onRename: () -> Unit, onDelete: () -> Unit) {
+    var menu by remember { mutableStateOf(false) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(64.dp), contentAlignment = Alignment.Center) {
+            LayoutPreview(
+                c.layout,
+                Modifier.height(64.dp).aspectRatio(c.layout.pageWMm / c.layout.pageHMm),
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(c.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            KindChip("Collage", CollageBlue)
+            Text(
+                "${c.layout.describe()} · ${c.filledCount}/${c.layout.cellCount} photos",
+                style = MaterialTheme.typography.bodySmall, color = Color.Gray,
+            )
+            Text(
+                SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(c.createdAt)),
+                style = MaterialTheme.typography.bodySmall, color = Color.Gray,
+            )
+        }
+        Box {
+            IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "Menu") }
+            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                DropdownMenuItem(text = { Text("Rename") }, onClick = { menu = false; onRename() })
+                DropdownMenuItem(text = { Text("Delete collage") }, onClick = { menu = false; onDelete() })
+            }
+        }
+    }
+}
+
+private val CollageBlue = Color(0xFF7FB2FF)
