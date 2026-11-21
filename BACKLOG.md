@@ -412,7 +412,51 @@ show the user the **whole flow and its final result**, not only the next step.
 
 ---
 
-## 19. Describe photos with text, for finding them later (ON HOLD)
+## 19. Photo-booth collage
+
+**Sessions list**
+- The single "New session" button becomes two: **Cull** and **Collage**.
+- Collages sit in the same list as culling sessions. A small chip says **Culling** or
+  **Collage**.
+
+**Layout (set when creating, editable later)**
+- Output format: **Selphy postcard 100×148 mm** (portrait/landscape), 4×6", A6 or custom.
+  300 dpi by default.
+- Cell ratio: 1:1 (default), 4:5, 3:4, 2:3 or custom.
+- Grid: 2×2, 2×3, 3×3, **3×4** (default), 4×4, or custom up to 6×6. Uniform cells only.
+- Gap between photos (default 2 mm) and outer margin (default 4 mm).
+- Changing the grid keeps the photo order. Photos that no longer fit go back to the ribbon.
+
+**Editor**
+- **Grid size slider:** makes the whole grid smaller or larger; cells keep their ratio. The grid
+  stays centred on the page.
+- **Background colour** for leftover space, gaps and margins.
+- **"All B/W"** switch.
+- **Ribbon** at the bottom with every photo added to the collage:
+  - used photos have a green frame, plus "×2" etc. when used more than once;
+  - unused photos have no frame;
+  - **long-press** a ribbon photo → "Remove from collage" (confirms when the photo is in cells,
+    and also removes it from them);
+  - **drag** a ribbon photo onto a cell to place it (an existing photo there goes back to the ribbon);
+  - **tap** a ribbon photo to put it into the first empty cell.
+- **Tap an empty cell** → pick photos (several allowed). They fill the empty cells in order;
+  extras stay in the ribbon.
+- **Tap a filled cell** → full-screen crop editor in the cell's shape: pinch to zoom, drag to
+  position, B/W toggle for that cell. The source file is never changed.
+- **Long-press and drag** a photo onto another cell: both are highlighted, and lifting the finger
+  swaps them; dropping on an empty cell moves the photo.
+- **Long-press without moving** → "Remove from grid" (the photo stays in the ribbon).
+- The same photo can be used in several cells.
+
+**Export:** a high-quality JPEG to **Pictures/Collages**, a new file each time
+("Collage 2026-11-21 15-30-00.jpg"), never overwriting.
+
+**Projects:** collages are saved and can be reopened, renamed (tap the name) and deleted.
+Deleting a collage never deletes photos or exported files.
+
+---
+
+## 20. Describe photos with text, for finding them later (ON HOLD)
 
 **Goal.** Attach a short piece of text to one photo (single photo view) or many at once (gallery
 selection), so the photo can be found later, for example "Lisbon, Alfama, sunset" or "Masha's
